@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@firebase/auth": "^0.19.3",
+    "dotenv": "^10.0.0",
+    "firebase": "^9.5.0",
+    "firebase-admin": "^10.0.0"
+  }
+}
