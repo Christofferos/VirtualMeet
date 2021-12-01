@@ -1,0 +1,23 @@
+{
+  "scripts": {
+    "start": "nodemon index.ts"
+  },
+  "dependencies": {
+    "@firebase/auth": "^0.19.3",
+    "concurrently": "^6.4.0",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "firebase": "^9.5.0",
+    "firebase-admin": "^10.0.0",
+    "http": "^0.0.1-security",
+    "nodemon": "^2.0.15",
+    "path": "^0.12.7"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingSpace": "none",
+    "trailingComma": "all",
+    "printWidth": 99,
+    "arrowParens": "always"
+  }
+}

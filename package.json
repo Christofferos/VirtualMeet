@@ -1,8 +1,31 @@
 {
+  "name": "VirtualMeet",
+  "version": "0.1.0",
+  "private": false,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "npm run build:dev",
+    "build:dev": "vue-cli-service build --mode development --watch",
+    "build:prod": "vue-cli-service build --mode production"
+  },
+  "license": "MIT",
+  "author": "Kristopher Werlinder",
   "dependencies": {
     "@firebase/auth": "^0.19.3",
+    "concurrently": "^6.4.0",
     "dotenv": "^10.0.0",
     "firebase": "^9.5.0",
-    "firebase-admin": "^10.0.0"
+    "firebase-admin": "^10.0.0",
+    "nodemon": "^2.0.15",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "styled-components": "^5.3.3"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "trailingSpace": "none",
+    "trailingComma": "all",
+    "printWidth": 99,
+    "arrowParens": "always"
   }
 }
