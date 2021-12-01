@@ -1,20 +1,23 @@
 import express from 'express';
-import path from 'path';
-import http from 'http';
+const dotenv = require('dotenv');
+dotenv.config({ path: '.env' });
+const http = require('http');
 
-const PORT = process.env.PORT || 8989;
 const EXPRESS_APP = express();
 
-const httpServer = http.createServer(EXPRESS_APP);
-
-EXPRESS_APP.use(express.json());
 EXPRESS_APP.use(express.urlencoded({ extended: true }));
+EXPRESS_APP.use(express.json());
 
-// Serve client static files
-const publicPath = path.join(path.resolve(), '..', 'frontend', 'build');
-EXPRESS_APP.use(express.static(publicPath));
+const PORT = process.env.PORT || 5000;
 
-// Start server
-httpServer.listen(PORT, () => {
-  console.log(`Server listening for requests on http://localhost:${PORT}`);
+const SERVER = http
+  .createServer(EXPRESS_APP)
+  .listen(
+    PORT,
+    console.log(`Https server running in ${process.env.NODE_ENV} mode on port ${PORT}`),
+  );
+
+process.on('unhandledRejection', (err, promise) => {
+  console.log(`Error:`);
+  SERVER.close(() => process.exit(1));
 });

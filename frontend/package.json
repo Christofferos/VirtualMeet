@@ -1,12 +1,13 @@
 {
+  "name": "VirtualMeet",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "author": "Kristopher Werlinder",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "watch": "npm-watch"
-  },
-  "watch": {
-    "build": "src/"
+    "test": "react-scripts test"
   },
   "dependencies": {
     "@firebase/auth": "^0.19.3",
@@ -22,7 +23,6 @@
     "firebase": "^9.5.0",
     "firebase-admin": "^10.0.0",
     "nodemon": "^2.0.15",
-    "npm-watch": "^0.11.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
