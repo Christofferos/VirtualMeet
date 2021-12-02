@@ -1,8 +1,8 @@
-import firebaseAdmin from "firebase-admin";
-const firebase = require("firebase/firebase");
-import "firebase/firestore";
+import firebaseAdmin from 'firebase-admin';
+const firebase = require('firebase/firebase');
+import 'firebase/firestore';
 
-import { GOOGLE_APPLICATION_CREDENTIALS } from "./src/env";
+import { GOOGLE_APPLICATION_CREDENTIALS } from './src/env';
 
 /* const FIREBASE_CREDENTIALS = {
   apiKey: "AIzaSyCp5jzdQHCYXUC4hdkSH5humduGbHVLey8",
@@ -18,18 +18,3 @@ export const firebaseApp = firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(GOOGLE_APPLICATION_CREDENTIALS),
 });
 export const firestore = firebase.firestore();
-
-/* ------------------------------------------ */
-
-const servers = {
-  iceServers: [
-    {
-      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
-    },
-  ],
-  iceCandidatePoolSize: 10,
-};
-
-const pc = new RTCPeerConnection(servers);
-let localStream = null;
-let remoteStream = null;
