@@ -1,12 +1,29 @@
 # VirtualMeet
 
-A webRTC video chat app
+## Run the code yourself:
+
+1. Navigate into the backend folder:
+
+   - **cd backend**
+
+2. Run the command:
+
+   - **yarn install && yarn client-install**
+
+3. Start the frontend (client) and backend (server) concurrently:
+
+   - **yarn dev**
+
+## A webRTC video chat app:
 
 - Typescript
+- Express
 - Signaling Server - Firebase
 
 _Desc_: Firebase will work as a 3rd party server is required for signaling that stores shared data
 for stream negotiation
+
+## Deep Dive - Details:
 
 **_Caller_**:
 
