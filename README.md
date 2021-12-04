@@ -1,4 +1,5 @@
 # VirtualMeet
+*A low-latency video calling application*
 
 ## Run the code yourself:
 
