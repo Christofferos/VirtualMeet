@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react';
 
 type WebcamVideoProps = {
   srcObject: MediaStream;
+  id: string;
 };
 
-export const WebcamVideo = ({ srcObject, ...props }: WebcamVideoProps) => {
+export const WebcamVideo = ({ srcObject, id, ...props }: WebcamVideoProps) => {
   const refVideo = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -12,5 +13,5 @@ export const WebcamVideo = ({ srcObject, ...props }: WebcamVideoProps) => {
     refVideo.current.srcObject = srcObject;
   }, [srcObject]);
 
-  return <video id="webcamVideo" autoPlay playsInline ref={refVideo} />;
+  return <video autoPlay playsInline ref={refVideo} id={id} />;
 };

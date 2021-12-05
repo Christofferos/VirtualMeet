@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { AnswerButton } from '../components/AnswerButton';
 import { CallButton } from '../components/CallButton';
 
 import { WebcamButton } from '../components/WebcamButton';
@@ -10,41 +11,45 @@ const Title = styled.h1``;
 
 export const VideoChatScreen = () => {
   const [localStream, setLocalStream] = useState<any>(null);
+  const [remoteStream, setRemoteStream] = useState<any>(new MediaStream());
+  const [callInput, setCallInput] = useState<any>(null);
 
-  const servers = {
-    iceServers: [
-      {
-        urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
-      },
-    ],
-    iceCandidatePoolSize: 10,
-  };
+  const servers = useMemo(
+    () => ({
+      iceServers: [
+        {
+          urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+        },
+      ],
+      iceCandidatePoolSize: 10,
+    }),
+    [],
+  );
 
-  const pc = new RTCPeerConnection(servers);
-  const remoteStream = new MediaStream();
+  const pc = useMemo(() => new RTCPeerConnection(servers), [servers]);
 
-  console.log('VIDEOCHATSCREEN');
-
-  const handleWebcamOnClick = async () => {
-    console.log('HIT!!', await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
-    const videoAudioStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    setLocalStream(videoAudioStream);
-
+  useEffect(() => {
     if (!localStream) return;
     // Push tracks from local stream to peer connection
     localStream.getTracks().forEach((track: any) => {
       pc.addTrack(track, localStream);
     });
-
     // Pull tracks from remote stream, add to video stream
     pc.ontrack = (event) => {
       event.streams[0].getTracks().forEach((track) => {
-        remoteStream.addTrack(track);
+        const tempRemoteStream = remoteStream;
+        tempRemoteStream.addTrack(track);
+        setRemoteStream(tempRemoteStream);
       });
     };
+  }, [localStream, pc, remoteStream]);
+
+  const handleWebcamOnClick = async () => {
+    const videoAudioStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    setLocalStream(videoAudioStream);
   };
 
   const handleCallOnClick = async () => {
@@ -53,7 +58,7 @@ export const VideoChatScreen = () => {
     const offerCandidates = callDoc.collection('offerCandidates');
     const answerCandidates = callDoc.collection('answerCandidates');
 
-    /* callInput.value = callDoc.id;
+    setCallInput(callDoc.id);
 
     // Get candidates for caller, save to db
     pc.onicecandidate = (event) => {
@@ -88,7 +93,46 @@ export const VideoChatScreen = () => {
           pc.addIceCandidate(candidate);
         }
       });
-    }); */
+    });
+  };
+
+  const handleAnswerOnClick = async () => {
+    const callId = callInput;
+    if (!callId) return;
+    const callDoc = firestore.collection('calls').doc(callId);
+    const offerCandidates = callDoc.collection('offerCandidates');
+    const answerCandidates = callDoc.collection('answerCandidates');
+
+    pc.onicecandidate = (event) => {
+      event.candidate && answerCandidates.add(event.candidate.toJSON());
+    };
+
+    // Fetch data, then set the offer & answer
+    const callData = (await callDoc.get()).data();
+    if (!callData) return;
+
+    const offerDescription = callData.offer;
+    await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+    const answerDescription = await pc.createAnswer();
+    await pc.setLocalDescription(answerDescription);
+
+    const answer = {
+      type: answerDescription.type,
+      sdp: answerDescription.sdp,
+    };
+
+    await callDoc.update({ answer });
+
+    // Listen to offer candidates
+    offerCandidates.onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          let data = change.doc.data();
+          pc.addIceCandidate(new RTCIceCandidate(data));
+        }
+      });
+    });
   };
 
   return (
@@ -97,11 +141,11 @@ export const VideoChatScreen = () => {
       <div className="videos">
         <span>
           <h3>Local Stream</h3>
-          <WebcamVideo srcObject={localStream} />
+          <WebcamVideo srcObject={localStream} id="webcamVideo" />
         </span>
         <span>
           <h3>Remote Stream</h3>
-          <video id="remoteVideo" autoPlay playsInline></video>
+          <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
         </span>
       </div>
       <WebcamButton onClick={handleWebcamOnClick} />
@@ -111,10 +155,13 @@ export const VideoChatScreen = () => {
 
       <Title>3. Join a Call</Title>
       <p>Answer the call from a different browser window or device</p>
-      <input id="callInput" />
-      <button id="answerButton" disabled>
-        Answer
-      </button>
+      <input
+        id="callInput"
+        value={callInput ?? ''}
+        onChange={(event) => setCallInput(event.target.value)}
+        style={{ color: 'black', display: 'block', width: 200 }}
+      />
+      <AnswerButton onClick={handleAnswerOnClick} />
 
       <Title>4. Hangup</Title>
       <button id="hangupButton" disabled>
