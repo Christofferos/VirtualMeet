@@ -13,7 +13,7 @@ const Button = styled.button`
 export const CallButton = (props: { onClick: () => void }) => {
   return (
     <Button id="callButton" onClick={props.onClick}>
-      Create Call (offer)
+      Create Call
     </Button>
   );
 };

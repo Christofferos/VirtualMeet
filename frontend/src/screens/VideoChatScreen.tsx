@@ -138,6 +138,7 @@ export const VideoChatScreen = () => {
   return (
     <>
       <Title>1. Start your Webcam</Title>
+      <WebcamButton onClick={handleWebcamOnClick} />
       <div className="videos">
         <span>
           <h3>Local Stream</h3>
@@ -148,7 +149,6 @@ export const VideoChatScreen = () => {
           <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
         </span>
       </div>
-      <WebcamButton onClick={handleWebcamOnClick} />
 
       <Title>2. Create a new Call</Title>
       <CallButton onClick={handleCallOnClick} />

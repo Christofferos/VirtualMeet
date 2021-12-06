@@ -1,5 +1,6 @@
 # VirtualMeet
-*A low-latency video calling application*
+
+_A low-latency video calling application_
 
 ## Run the code yourself:
 
@@ -23,6 +24,17 @@
 
 _Desc_: Firebase will work as a 3rd party server is required for signaling that stores shared data
 for stream negotiation
+
+## TODO LIST:
+
+- Scale down video if device width is smaller than output video
+- Talk | Virtual Meet | Play
+- Center formatting and other design
+- Challenge someone that is online to play with
+- Add timer to environment events
+- Publish on Heroku
+- Idea: What is the object? Recognition (https://www.youtube.com/watch?v=01sAkU_NvOY)
+  (https://data-flair.training/blogs/data-science-project-ideas/)
 
 ## Deep Dive - Details:
 
