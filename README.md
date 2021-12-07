@@ -28,14 +28,12 @@ _A low-latency video calling application_
 - Express
 - Signaling Server - Firebase
 
-_Desc_: Firebase will work as a 3rd party server is required for signaling that stores shared data
-for stream negotiation
-
 ## TODO LIST:
 
-- Scale down video if device width is smaller than output video
+- Scale down video if device width is smaller than output video ✅
+- Allow for more than 2 people to join the call
 - Talk | Virtual Meet | Play
-- Center formatting and other design
+- Center formatting and other design ✅
 - Challenge someone that is online to play with
 - Add timer to environment events
 - Publish on Heroku
@@ -61,3 +59,6 @@ for stream negotiation
 4. Call createAnswer(), then write answer to database.
 5. Share ICE candidates with other peer
 6. Show remote video feed
+
+**Firebase:** will work as a 3rd party server is required for signaling that stores shared data for
+stream negotiation
