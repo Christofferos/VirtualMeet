@@ -2,6 +2,12 @@
 
 _A low-latency video calling application_
 
+<p float="left">
+  <img src="branding/previwImgVirtualMeet1.png" width="300" />
+  <img src="branding/previwImgVirtualMeet2.png" width="300" /> 
+  <img src="branding/previwImgVirtualMeet3.png" width="300" /> 
+</p>
+
 ## Run the code yourself:
 
 1. Navigate into the backend folder:
