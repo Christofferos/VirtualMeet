@@ -1,18 +1,42 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+
 import { AnswerButton } from '../components/AnswerButton';
 import { CallButton } from '../components/CallButton';
-
 import { WebcamButton } from '../components/WebcamButton';
 import { WebcamVideo } from '../components/WebcamVideo';
 import { firestore } from '../firebase';
+import waitingForWebcam from '../assets/waitingForUser2.png';
+import waitingForFriend from '../assets/waitingForUser3.png';
+import { Instructions } from '../components/Instructions';
+
+const Container = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+`;
 
 const Title = styled.h1``;
+
+const Subtitle = styled.h3`
+  display: flex;
+  justify-content: center;
+`;
+
+const VideoContainer = styled.div`
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 2fr));
+  grid-gap: 1rem;
+`;
 
 export const VideoChatScreen = () => {
   const [localStream, setLocalStream] = useState<any>(null);
   const [remoteStream, setRemoteStream] = useState<any>(new MediaStream());
   const [callInput, setCallInput] = useState<any>(null);
+  const [isWebcamAvailable, setIsWebcamAvailable] = useState<boolean>(true);
+  const [isCallActive, setIsCallActive] = useState<boolean>(false);
 
   const servers = useMemo(
     () => ({
@@ -44,15 +68,20 @@ export const VideoChatScreen = () => {
     };
   }, [localStream, pc, remoteStream]);
 
-  const handleWebcamOnClick = async () => {
-    const videoAudioStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-    setLocalStream(videoAudioStream);
+  const activateWebcam = async () => {
+    try {
+      const videoAudioStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      setLocalStream(videoAudioStream);
+    } catch {
+      console.log('Webcam was not found for device.');
+      setIsWebcamAvailable(false);
+    }
   };
 
-  const handleCallOnClick = async () => {
+  const startCall = async () => {
     // Reference Firestore collections for signaling
     const callDoc = firestore.collection('calls').doc();
     const offerCandidates = callDoc.collection('offerCandidates');
@@ -92,11 +121,12 @@ export const VideoChatScreen = () => {
           const candidate = new RTCIceCandidate(change.doc.data());
           pc.addIceCandidate(candidate);
         }
+        setIsCallActive(true);
       });
     });
   };
 
-  const handleAnswerOnClick = async () => {
+  const answerCall = async () => {
     const callId = callInput;
     if (!callId) return;
     const callDoc = firestore.collection('calls').doc(callId);
@@ -131,43 +161,44 @@ export const VideoChatScreen = () => {
           let data = change.doc.data();
           pc.addIceCandidate(new RTCIceCandidate(data));
         }
+        setIsCallActive(true);
       });
     });
   };
 
   return (
-    <>
-      <Title>1. Start your Webcam</Title>
-      <WebcamButton onClick={handleWebcamOnClick} />
-      <div className="videos">
-        <span>
-          <h3>Local Stream</h3>
-          <WebcamVideo srcObject={localStream} id="webcamVideo" />
-        </span>
-        <span>
-          <h3>Remote Stream</h3>
-          <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
-        </span>
-      </div>
-
-      <Title>2. Create a new Call</Title>
-      <CallButton onClick={handleCallOnClick} />
-
-      <Title>3. Join a Call</Title>
-      <p>Answer the call from a different browser window or device</p>
-      <input
-        id="callInput"
-        value={callInput ?? ''}
-        onChange={(event) => setCallInput(event.target.value)}
-        style={{ color: 'black', display: 'block', width: 200 }}
+    <Container>
+      <Instructions
+        activateWebcam={activateWebcam}
+        startCall={startCall}
+        answerCall={answerCall}
+        callInput={callInput}
+        setCallInput={setCallInput}
+        localStream={localStream}
+        remoteStream={remoteStream}
+        isCallActive={isCallActive}
+        setIsCallActive={setIsCallActive}
       />
-      <AnswerButton onClick={handleAnswerOnClick} />
 
-      <Title>4. Hangup</Title>
-      <button id="hangupButton" disabled>
-        Hangup
-      </button>
-      <script type="module" src="/main.js"></script>
-    </>
+      <VideoContainer className="videos">
+        <Container>
+          <Subtitle>Friend</Subtitle>
+
+          {remoteStream?.active ? (
+            <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
+          ) : (
+            <img src={waitingForFriend} alt={'Waiting for friend..'} width={240} />
+          )}
+        </Container>
+        <Container>
+          <Subtitle>You</Subtitle>
+          {localStream ? (
+            <WebcamVideo srcObject={localStream} id="webcamVideo" />
+          ) : (
+            <img src={waitingForWebcam} alt={'Waiting for webcam..'} width={240} />
+          )}
+        </Container>
+      </VideoContainer>
+    </Container>
   );
 };

@@ -1,8 +1,9 @@
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
+import { FIREBASE_API_KEY } from './utils/env';
 
 const FIREBASE_CREDENTIALS = {
-  apiKey: 'AIzaSyCp5jzdQHCYXUC4hdkSH5humduGbHVLey8',
+  apiKey: FIREBASE_API_KEY,
   authDomain: 'virtual-meet-rtc.firebaseapp.com',
   projectId: 'virtual-meet-rtc',
   storageBucket: 'virtual-meet-rtc.appspot.com',
