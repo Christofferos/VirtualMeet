@@ -1,1 +1,1 @@
-cd backend && yarn server
+cd frontend && yarn start
