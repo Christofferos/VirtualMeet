@@ -10,8 +10,8 @@
     "test": "react-scripts test"
   },
   "engines": {
-    "node": "14.x",
-    "yarn": "1.22.5"
+    "node": "16.13.1",
+    "yarn": "1.22.10"
   },
   "dependencies": {
     "@firebase/auth": "^0.19.3",
