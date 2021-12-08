@@ -5,6 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "start": "cd frontend && react-scripts start",
     "heroku-postbuild": "cd frontend && yarn build"
   },
   "dependencies": {
