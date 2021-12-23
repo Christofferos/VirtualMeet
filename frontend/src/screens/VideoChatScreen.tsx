@@ -9,6 +9,7 @@ import { firestore } from '../firebase';
 import waitingForWebcam from '../assets/waitingForUser2.png';
 import waitingForFriend from '../assets/waitingForUser3.png';
 import { Instructions } from '../components/Instructions';
+import { Spacer } from '../components/Spacer';
 
 const Container = styled.div`
   display: flex;
@@ -36,6 +37,7 @@ export const VideoChatScreen = () => {
   const [remoteStream, setRemoteStream] = useState<any>(new MediaStream());
   const [callInput, setCallInput] = useState<any>(null);
   const [isWebcamAvailable, setIsWebcamAvailable] = useState<boolean>(true);
+  const [isMicEnabled, setIsMicEnabled] = useState<boolean>(true);
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
 
   const servers = useMemo(
@@ -166,8 +168,18 @@ export const VideoChatScreen = () => {
     });
   };
 
+  const toggleMic = () => {
+    if (!localStream) return;
+    console.log('LOCALSTREAM: ', localStream);
+    // setLocalStream((prevState: any) => prevState);
+    const micEnabledState = !localStream.getAudioTracks()[0].enabled;
+    setIsMicEnabled(micEnabledState);
+    localStream.getAudioTracks()[0].enabled = micEnabledState;
+  };
+
   return (
     <Container>
+      <Spacer height={25} />
       <Instructions
         activateWebcam={activateWebcam}
         startCall={startCall}
@@ -178,9 +190,19 @@ export const VideoChatScreen = () => {
         remoteStream={remoteStream}
         isCallActive={isCallActive}
         setIsCallActive={setIsCallActive}
+        toggleMic={toggleMic}
+        micEnabled={isMicEnabled}
       />
 
       <VideoContainer className="videos">
+        <Container>
+          <Subtitle>You</Subtitle>
+          {localStream ? (
+            <WebcamVideo srcObject={localStream} id="webcamVideo" />
+          ) : (
+            <img src={waitingForWebcam} alt={'Waiting for webcam..'} width={240} />
+          )}
+        </Container>
         <Container>
           <Subtitle>Friend</Subtitle>
 
@@ -188,14 +210,6 @@ export const VideoChatScreen = () => {
             <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
           ) : (
             <img src={waitingForFriend} alt={'Waiting for friend..'} width={240} />
-          )}
-        </Container>
-        <Container>
-          <Subtitle>You</Subtitle>
-          {localStream ? (
-            <WebcamVideo srcObject={localStream} id="webcamVideo" />
-          ) : (
-            <img src={waitingForWebcam} alt={'Waiting for webcam..'} width={240} />
           )}
         </Container>
       </VideoContainer>

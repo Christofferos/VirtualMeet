@@ -1,13 +1,22 @@
 import styled from 'styled-components';
+import { Spacer } from './Spacer';
 
 const Button = styled.button`
   background: #7fa650;
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 600;
   line-height: 1.2;
   color: #fff;
-  width: 200px;
+  width: 220px;
+  height: 45px;
   border: none;
+`;
+
+const Input = styled.input`
+  color: black;
+  display: block;
+  width: 220px;
+  text-align: center;
 `;
 
 const Title = styled.h1``;
@@ -22,41 +31,47 @@ export const Instructions = (props: {
   remoteStream: any;
   isCallActive: boolean;
   setIsCallActive: React.Dispatch<React.SetStateAction<boolean>>;
+  toggleMic: () => void;
+  micEnabled: boolean;
 }) => {
+  const refreshPage = () => {
+    window.location.reload();
+  };
+
   const webcamInstruction = (
     <>
-      <Title>Start your Webcam</Title>
       <Button id="webcamButton" onClick={props.activateWebcam}>
-        Start webcam
+        Start webcam 🎥
       </Button>
     </>
   );
 
   const callInstruction = (
     <>
-      <Title>Create call</Title>
       <Button id="callButton" onClick={props.startCall}>
         Create Call
       </Button>
-      <Title>Join call</Title>
-      <input
+      <Spacer height={35} />
+      <Input
         id="callInput"
+        placeholder="Code..."
         value={props.callInput ?? ''}
         onChange={(event) => props.setCallInput(event.target.value)}
-        style={{ color: 'black', display: 'block', width: 200 }}
       />
       <Button id="answerButton" onClick={props.answerCall}>
-        Answer
+        Join Call
       </Button>
-      <p>(Answer the call from a different browser window or device)</p>
+      <p>(Join from another browser or device)</p>
     </>
   );
 
   const hangupInstruction = (
     <>
-      <button id="hangupButton" disabled>
+      <Button id="hangupButton" onClick={refreshPage}>
         Hangup
-      </button>
+      </Button>
+      <Spacer height={10} />
+      <Button onClick={props.toggleMic}>{props.micEnabled ? 'Mute Mic' : 'Unmute Mic'}</Button>
     </>
   );
 
