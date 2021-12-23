@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { v4 as uuidv4 } from 'uuid';
 
 import { AnswerButton } from '../components/AnswerButton';
 import { CallButton } from '../components/CallButton';
@@ -12,6 +11,8 @@ import waitingForFriend from '../assets/waitingForUser3.png';
 import { Instructions } from '../components/Instructions';
 import { Spacer } from '../components/Spacer';
 import { Button } from '../components/Button';
+
+const { v4: uuidv4 } = require('uuid');
 
 const Container = styled.div`
   display: flex;
