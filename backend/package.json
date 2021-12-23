@@ -21,7 +21,8 @@
     "firebase-admin": "^10.0.0",
     "http": "^0.0.1-security",
     "nodemon": "^2.0.15",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "uuid": "^8.3.2"
   },
   "prettier": {
     "singleQuote": true,
@@ -29,5 +30,8 @@
     "trailingComma": "all",
     "printWidth": 99,
     "arrowParens": "always"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.3"
   }
 }
