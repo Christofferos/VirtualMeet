@@ -193,11 +193,17 @@ export const VideoChatScreen = () => {
     });
   };
 
-  const toggleMic = () => {
+  const toggleMic = async () => {
     if (!localStream) return;
-    const micEnabledState = !localStream.getAudioTracks()[0].enabled;
-    setPeripheralStatus((prevState) => ({ ...prevState, isMicEnabled: micEnabledState }));
-    localStream.getAudioTracks()[0].enabled = micEnabledState;
+    const newMicState = !localStream.getAudioTracks()[0].enabled;
+    setPeripheralStatus((prevState) => ({ ...prevState, isMicEnabled: newMicState }));
+    localStream.getAudioTracks()[0].enabled = newMicState;
+  };
+
+  const toggleCam = async () => {
+    const newCamState = !localStream.getVideoTracks()[0].enabled;
+    setPeripheralStatus((prevState) => ({ ...prevState, isCamEnabled: newCamState }));
+    localStream.getVideoTracks()[0].enabled = newCamState;
   };
 
   const closeCreateCallModal = () => {
@@ -226,6 +232,8 @@ export const VideoChatScreen = () => {
         setIsCallActive={setIsCallActive}
         toggleMic={toggleMic}
         micEnabled={peripheralStatus?.isMicEnabled}
+        toggleCam={toggleCam}
+        camEnabled={peripheralStatus?.isCamEnabled}
       />
 
       <VideoContainer className="videos">

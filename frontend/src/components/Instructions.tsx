@@ -23,6 +23,8 @@ export const Instructions = (props: {
   setIsCallActive: React.Dispatch<React.SetStateAction<boolean>>;
   toggleMic: () => void;
   micEnabled: boolean;
+  toggleCam: () => void;
+  camEnabled: boolean;
 }) => {
   const refreshPage = () => {
     window.location.reload();
@@ -56,6 +58,8 @@ export const Instructions = (props: {
       <Button onClick={props.toggleMic}>
         {props.micEnabled ? 'Mute Mic 🎙️' : 'Unmute Mic 🎙️'}
       </Button>
+      <Spacer height={10} />
+      <Button onClick={props.toggleCam}>{props.camEnabled ? 'Cam Off 📷' : 'Cam On 📷'}</Button>
     </>
   );
 
@@ -68,6 +72,8 @@ export const Instructions = (props: {
       <Button onClick={props.toggleMic}>
         {props.micEnabled ? 'Mute Mic 🎙️' : 'Unmute Mic 🎙️'}
       </Button>
+      <Spacer height={10} />
+      <Button onClick={props.toggleCam}>{props.camEnabled ? 'Cam Off 📷' : 'Cam On 📷'}</Button>
     </>
   );
 
