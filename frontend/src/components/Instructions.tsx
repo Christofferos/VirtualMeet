@@ -1,25 +1,15 @@
 import styled from 'styled-components';
+import { Button } from './Button';
 import { Spacer } from './Spacer';
-
-const Button = styled.button`
-  background: #7fa650;
-  font-size: 2.4rem;
-  font-weight: 600;
-  line-height: 1.2;
-  color: #fff;
-  width: 220px;
-  height: 45px;
-  border: none;
-`;
 
 const Input = styled.input`
   color: black;
   display: block;
   width: 220px;
+  height: 30px;
+  font-size: 2.2rem;
   text-align: center;
 `;
-
-const Title = styled.h1``;
 
 export const Instructions = (props: {
   activateWebcam: () => void;
@@ -49,7 +39,7 @@ export const Instructions = (props: {
   const callInstruction = (
     <>
       <Button id="callButton" onClick={props.startCall}>
-        Create Call
+        Create Call 🤙
       </Button>
       <Spacer height={35} />
       <Input
@@ -59,19 +49,25 @@ export const Instructions = (props: {
         onChange={(event) => props.setCallInput(event.target.value)}
       />
       <Button id="answerButton" onClick={props.answerCall}>
-        Join Call
+        Join Call 📲
       </Button>
       <p>(Join from another browser or device)</p>
+      <Spacer height={10} />
+      <Button onClick={props.toggleMic}>
+        {props.micEnabled ? 'Mute Mic 🎙️' : 'Unmute Mic 🎙️'}
+      </Button>
     </>
   );
 
   const hangupInstruction = (
     <>
       <Button id="hangupButton" onClick={refreshPage}>
-        Hangup
+        Hangup 📴
       </Button>
       <Spacer height={10} />
-      <Button onClick={props.toggleMic}>{props.micEnabled ? 'Mute Mic' : 'Unmute Mic'}</Button>
+      <Button onClick={props.toggleMic}>
+        {props.micEnabled ? 'Mute Mic 🎙️' : 'Unmute Mic 🎙️'}
+      </Button>
     </>
   );
 

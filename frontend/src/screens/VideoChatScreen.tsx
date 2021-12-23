@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { v4 as uuidv4 } from 'uuid';
 
 import { AnswerButton } from '../components/AnswerButton';
 import { CallButton } from '../components/CallButton';
@@ -10,6 +11,7 @@ import waitingForWebcam from '../assets/waitingForUser2.png';
 import waitingForFriend from '../assets/waitingForUser3.png';
 import { Instructions } from '../components/Instructions';
 import { Spacer } from '../components/Spacer';
+import { Button } from '../components/Button';
 
 const Container = styled.div`
   display: flex;
@@ -32,12 +34,33 @@ const VideoContainer = styled.div`
   grid-gap: 1rem;
 `;
 
+const ModalOverlay = styled.div`
+  position: absolute;
+  flex-direction: column;
+  top: 0%;
+  right: 0%;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(205, 133, 63, 0.6);
+  z-index: 2;
+  align-items: center;
+  justify-content: center;
+`;
+
+interface IPeripheral {
+  isMicEnabled: boolean;
+  isCamEnabled: boolean;
+}
+
 export const VideoChatScreen = () => {
   const [localStream, setLocalStream] = useState<any>(null);
   const [remoteStream, setRemoteStream] = useState<any>(new MediaStream());
   const [callInput, setCallInput] = useState<any>(null);
-  const [isWebcamAvailable, setIsWebcamAvailable] = useState<boolean>(true);
-  const [isMicEnabled, setIsMicEnabled] = useState<boolean>(true);
+  const [isCreateCallModalActive, setIsCreateCallModalActive] = useState<boolean>(false);
+  const [peripheralStatus, setPeripheralStatus] = useState<IPeripheral>({
+    isMicEnabled: true,
+    isCamEnabled: true,
+  });
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
 
   const servers = useMemo(
@@ -79,17 +102,19 @@ export const VideoChatScreen = () => {
       setLocalStream(videoAudioStream);
     } catch {
       console.log('Webcam was not found for device.');
-      setIsWebcamAvailable(false);
+      setPeripheralStatus((prevState) => ({ ...prevState, isCamEnabled: false }));
     }
   };
 
   const startCall = async () => {
     // Reference Firestore collections for signaling
-    const callDoc = firestore.collection('calls').doc();
+    const callCode = uuidv4().slice(0, 3);
+    const callDoc = firestore.collection('calls').doc(callCode);
     const offerCandidates = callDoc.collection('offerCandidates');
     const answerCandidates = callDoc.collection('answerCandidates');
 
     setCallInput(callDoc.id);
+    setIsCreateCallModalActive(true);
 
     // Get candidates for caller, save to db
     pc.onicecandidate = (event) => {
@@ -170,15 +195,24 @@ export const VideoChatScreen = () => {
 
   const toggleMic = () => {
     if (!localStream) return;
-    console.log('LOCALSTREAM: ', localStream);
-    // setLocalStream((prevState: any) => prevState);
     const micEnabledState = !localStream.getAudioTracks()[0].enabled;
-    setIsMicEnabled(micEnabledState);
+    setPeripheralStatus((prevState) => ({ ...prevState, isMicEnabled: micEnabledState }));
     localStream.getAudioTracks()[0].enabled = micEnabledState;
+  };
+
+  const closeCreateCallModal = () => {
+    setIsCreateCallModalActive(false);
   };
 
   return (
     <Container>
+      <ModalOverlay style={{ display: isCreateCallModalActive ? 'flex' : 'none' }}>
+        <Title style={{ textAlign: 'center' }}>
+          Share call code with friend: <br />
+          {callInput}
+        </Title>
+        <Button onClick={closeCreateCallModal}>Done</Button>
+      </ModalOverlay>
       <Spacer height={25} />
       <Instructions
         activateWebcam={activateWebcam}
@@ -191,7 +225,7 @@ export const VideoChatScreen = () => {
         isCallActive={isCallActive}
         setIsCallActive={setIsCallActive}
         toggleMic={toggleMic}
-        micEnabled={isMicEnabled}
+        micEnabled={peripheralStatus?.isMicEnabled}
       />
 
       <VideoContainer className="videos">
