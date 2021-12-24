@@ -1,15 +1,6 @@
-import styled from 'styled-components';
 import { Button } from './Button';
+import { Input } from './Input';
 import { Spacer } from './Spacer';
-
-const Input = styled.input`
-  color: black;
-  display: block;
-  width: 220px;
-  height: 30px;
-  font-size: 2.2rem;
-  text-align: center;
-`;
 
 export const Instructions = (props: {
   activateWebcam: () => void;
@@ -25,8 +16,10 @@ export const Instructions = (props: {
   micEnabled: boolean;
   toggleCam: () => void;
   camEnabled: boolean;
+  endCall: () => void;
 }) => {
-  const refreshPage = () => {
+  const hangUp = () => {
+    props.endCall();
     window.location.reload();
   };
 
@@ -65,7 +58,7 @@ export const Instructions = (props: {
 
   const hangupInstruction = (
     <>
-      <Button id="hangupButton" onClick={refreshPage}>
+      <Button id="hangupButton" onClick={hangUp}>
         Hangup 📴
       </Button>
       <Spacer height={10} />

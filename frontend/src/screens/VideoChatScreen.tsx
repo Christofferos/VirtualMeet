@@ -11,15 +11,9 @@ import waitingForFriend from '../assets/waitingForUser3.png';
 import { Instructions } from '../components/Instructions';
 import { Spacer } from '../components/Spacer';
 import { Button } from '../components/Button';
+import { Container } from '../components/Container';
 
 const { v4: uuidv4 } = require('uuid');
-
-const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-`;
 
 const Title = styled.h1``;
 
@@ -52,6 +46,16 @@ interface IPeripheral {
   isMicEnabled: boolean;
   isCamEnabled: boolean;
 }
+
+const makeId = (length: number) => {
+  var result = '';
+  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charactersLength = characters.length;
+  for (var i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+  }
+  return result;
+};
 
 export const VideoChatScreen = () => {
   const [localStream, setLocalStream] = useState<any>(null);
@@ -111,6 +115,7 @@ export const VideoChatScreen = () => {
     // Reference Firestore collections for signaling
     const callCode = uuidv4().slice(0, 3);
     const callDoc = firestore.collection('calls').doc(callCode);
+    // await callDoc.set({ id: callCode });
     const offerCandidates = callDoc.collection('offerCandidates');
     const answerCandidates = callDoc.collection('answerCandidates');
 
@@ -119,6 +124,7 @@ export const VideoChatScreen = () => {
 
     // Get candidates for caller, save to db
     pc.onicecandidate = (event) => {
+      console.log('GET CANDIDATES');
       event.candidate && offerCandidates.add(event.candidate.toJSON());
     };
 
@@ -131,11 +137,12 @@ export const VideoChatScreen = () => {
       type: offerDescription.type,
     };
 
-    await callDoc.set({ offer });
+    await callDoc.set({ offer, id: callCode });
 
     // Listen for remote answer
     callDoc.onSnapshot((snapshot) => {
       const data = snapshot.data();
+      console.log('REMOTE ANSWER');
       if (!pc.currentRemoteDescription && data?.answer) {
         const answerDescription = new RTCSessionDescription(data.answer);
         pc.setRemoteDescription(answerDescription);
@@ -146,6 +153,7 @@ export const VideoChatScreen = () => {
     answerCandidates.onSnapshot((snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
+          console.log('ANSWER ADDED');
           const candidate = new RTCIceCandidate(change.doc.data());
           pc.addIceCandidate(candidate);
         }
@@ -162,6 +170,7 @@ export const VideoChatScreen = () => {
     const answerCandidates = callDoc.collection('answerCandidates');
 
     pc.onicecandidate = (event) => {
+      console.log('ONICECANDIDATE');
       event.candidate && answerCandidates.add(event.candidate.toJSON());
     };
 
@@ -186,6 +195,7 @@ export const VideoChatScreen = () => {
     offerCandidates.onSnapshot((snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added') {
+          console.log('ADDED');
           let data = change.doc.data();
           pc.addIceCandidate(new RTCIceCandidate(data));
         }
@@ -209,6 +219,11 @@ export const VideoChatScreen = () => {
 
   const closeCreateCallModal = () => {
     setIsCreateCallModalActive(false);
+  };
+
+  const endCall = async () => {
+    const callId = callInput;
+    await firestore.collection('calls').doc(callId).delete();
   };
 
   return (
@@ -235,6 +250,7 @@ export const VideoChatScreen = () => {
         micEnabled={peripheralStatus?.isMicEnabled}
         toggleCam={toggleCam}
         camEnabled={peripheralStatus?.isCamEnabled}
+        endCall={endCall}
       />
 
       <VideoContainer className="videos">
