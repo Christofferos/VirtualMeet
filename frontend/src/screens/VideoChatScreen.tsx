@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
-import { AnswerButton } from '../components/AnswerButton';
-import { CallButton } from '../components/CallButton';
-import { WebcamButton } from '../components/WebcamButton';
-import { WebcamVideo } from '../components/WebcamVideo';
 import { firestore } from '../firebase';
 import waitingForWebcam from '../assets/waitingForUser2.png';
 import waitingForFriend from '../assets/waitingForUser3.png';
+import { WebcamVideo } from '../components/WebcamVideo';
 import { Instructions } from '../components/Instructions';
 import { Spacer } from '../components/Spacer';
 import { Button } from '../components/Button';
@@ -46,16 +43,6 @@ interface IPeripheral {
   isMicEnabled: boolean;
   isCamEnabled: boolean;
 }
-
-const makeId = (length: number) => {
-  var result = '';
-  var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for (var i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-  }
-  return result;
-};
 
 export const VideoChatScreen = () => {
   const [localStream, setLocalStream] = useState<any>(null);
@@ -115,7 +102,6 @@ export const VideoChatScreen = () => {
     // Reference Firestore collections for signaling
     const callCode = uuidv4().slice(0, 3);
     const callDoc = firestore.collection('calls').doc(callCode);
-    // await callDoc.set({ id: callCode });
     const offerCandidates = callDoc.collection('offerCandidates');
     const answerCandidates = callDoc.collection('answerCandidates');
 
@@ -217,6 +203,10 @@ export const VideoChatScreen = () => {
     localStream.getVideoTracks()[0].enabled = newCamState;
   };
 
+  const handleSetCallInput = (input: string) => {
+    setCallInput(input);
+  };
+
   const closeCreateCallModal = () => {
     setIsCreateCallModalActive(false);
   };
@@ -241,7 +231,7 @@ export const VideoChatScreen = () => {
         startCall={startCall}
         answerCall={answerCall}
         callInput={callInput}
-        setCallInput={setCallInput}
+        handleSetCallInput={handleSetCallInput}
         localStream={localStream}
         remoteStream={remoteStream}
         isCallActive={isCallActive}

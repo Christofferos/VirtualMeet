@@ -7,7 +7,7 @@ export const Instructions = (props: {
   startCall: () => void;
   answerCall: () => void;
   callInput: any;
-  setCallInput: React.Dispatch<any>;
+  handleSetCallInput: (input: string) => void;
   localStream: any;
   remoteStream: any;
   isCallActive: boolean;
@@ -41,7 +41,7 @@ export const Instructions = (props: {
         id="callInput"
         placeholder="Code..."
         value={props.callInput ?? ''}
-        onChange={(event) => props.setCallInput(event.target.value)}
+        onChange={(event) => props.handleSetCallInput(event.target.value)}
       />
       <Button id="answerButton" onClick={props.answerCall}>
         Join Call 📲
