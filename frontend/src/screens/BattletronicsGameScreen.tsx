@@ -7,6 +7,8 @@ import { Spacer } from '../components/Spacer';
 import { Button } from '../components/Button';
 import { Container } from '../components/Container';
 import { Input } from '../components/Input';
+import { ModalOverlay } from '../components/ModalOverlay';
+import { Game } from './Game';
 
 const Title = styled.h1``;
 const Subtitle = styled.h3`
@@ -30,9 +32,6 @@ const makeId = (length: number) => {
 };
 
 export const BattletronicsGameScreen = () => {
-  const [isGameActive, setIsGameActive] = useState<boolean>(false);
-  const [gameInput, setGameInput] = useState<string>('');
-
   const servers = useMemo(
     () => ({
       iceServers: [
@@ -44,24 +43,49 @@ export const BattletronicsGameScreen = () => {
     }),
     [],
   );
+  const [isGameActive, setIsGameActive] = useState<boolean>(false);
+  const [gameInput, setGameInput] = useState<string>('');
   const peerConnection = useMemo(() => new RTCPeerConnection(servers), [servers]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
-  const remoteConnection = new RTCPeerConnection();
-  remoteConnection.ondatachannel = (data: any) => {
-    console.log('HIT?', data);
-  };
+  const [isCreateCallModalActive, setIsCreateCallModalActive] = useState<boolean>(false);
+
+  const [gameState, setGameState] = useState<any>(null);
+
+  useEffect(() => {
+    if (!dataChannel) return;
+    console.log('CHANGE MADE TO PEERCONNECTION', dataChannel);
+    dataChannel.onmessage = (event: any) => {
+      const parsedData = JSON.parse(event.data);
+      // console.log('PARSED DATA ', parsedData, parsedData.gameState);
+      // alert('logs');
+      if (!parsedData.gameState) return;
+      // alert('logs reached');
+      setGameState(parsedData.gameState);
+    };
+    dataChannel.onopen = () => console.log("Receive channel's status has changed to OPEN");
+    dataChannel.onclose = () => console.log("Receive channel's status has changed to CLOSE");
+    dataChannel.onerror = (error: any) => {
+      console.log('Data Channel Error:', error);
+    };
+    return () => {
+      console.log('useEffect teardown');
+      // close all the channels
+    };
+  }, [dataChannel]);
 
   const createGame = async () => {
     // Reference Firestore collections for signaling
     const gameCode = makeId(3);
-    console.log('GAMECODE: ', gameCode);
-    /* setCallInput(gameDoc.id);
-    setIsCreateCallModalActive(true); */
+    setDataChannel(peerConnection.createDataChannel(`Battletronics-${gameCode}`));
+    // console.log('GAMECODE: ', gameCode);
+    setGameInput(gameCode);
+    setIsCreateCallModalActive(true);
     const gameDoc = firestore.collection(GAMES_COLLECTION_KEY).doc(gameCode);
     const offerCandidates = gameDoc.collection(OFFER_CANDIDATES_KEY);
     const answerCandidates = gameDoc.collection(ANSWER_CANDIDATES_KEY);
     // Get candidates for caller, save to db
     peerConnection.onicecandidate = (event) => {
+      console.log('Conn successful (A)');
       event.candidate && offerCandidates.add(event.candidate.toJSON());
     };
     // Create offer
@@ -77,6 +101,7 @@ export const BattletronicsGameScreen = () => {
       const data = snapshot.data();
       if (!peerConnection.currentRemoteDescription && data?.answer) {
         const answerDescription = new RTCSessionDescription(data.answer);
+        console.log('set remote description (A)');
         peerConnection.setRemoteDescription(answerDescription);
       }
     });
@@ -90,21 +115,27 @@ export const BattletronicsGameScreen = () => {
         setIsGameActive(true);
       });
     });
-    setDataChannel(peerConnection.createDataChannel('Battletronics-code123'));
   };
 
   const joinGame = async () => {
     if (!gameInput) return;
+    peerConnection.ondatachannel = (event: any) => {
+      const receiveChannel = event.channel;
+      console.log('EVENT CHANNEL ', receiveChannel);
+      setDataChannel(receiveChannel);
+    };
     const callDoc = firestore.collection(GAMES_COLLECTION_KEY).doc(gameInput);
     const offerCandidates = callDoc.collection(OFFER_CANDIDATES_KEY);
     const answerCandidates = callDoc.collection(ANSWER_CANDIDATES_KEY);
     peerConnection.onicecandidate = (event) => {
+      console.log('Conn successful (B)');
       event.candidate && answerCandidates.add(event.candidate.toJSON());
     };
     // Fetch data, then set the offer & answer
     const callData = (await callDoc.get()).data();
     if (!callData) return;
     const offerDescription = callData.offer;
+    console.log('set remote description (B)');
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offerDescription));
     const answerDescription = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answerDescription);
@@ -123,37 +154,11 @@ export const BattletronicsGameScreen = () => {
         setIsGameActive(true);
       });
     });
-    setDataChannel(peerConnection.createDataChannel('Battletronics-code123'));
   };
 
-  // ----------------------------------------------------------------
-  useEffect(() => {
-    if (!dataChannel) return;
-    console.log('CHANGE MADE TO PEERCONNECTION', dataChannel);
-    // Establish your peer connection using your signaling channel here
-    dataChannel.onerror = (error: any) => {
-      console.log('Data Channel Error:', error);
-    };
-    dataChannel.onclose = () => {
-      console.log('The Data Channel is Closed');
-    };
-    dataChannel.onmessage = (event: any) => {
-      console.log('Got Data Channel Message:', event.data);
-    };
-    dataChannel.onopen = () => {
-      console.log('HITHIT');
-      const gameState = {
-        message: 'GAME ONGOING',
-        timestamp: new Date(),
-        movementData: {
-          up: false,
-          right: true,
-        },
-      };
-      // dataChannel.send(JSON.stringify(gameState));
-    };
-  }, [peerConnection, dataChannel]);
-  // ----------------------------------------------------------------
+  const closeCreateCallModal = () => {
+    setIsCreateCallModalActive(false);
+  };
 
   const messageQueue: string[] = [];
   const sendMessage = (msg: string) => {
@@ -163,13 +168,17 @@ export const BattletronicsGameScreen = () => {
         messageQueue.push(msg);
         break;
       case 'open':
+        console.log('OPEN message pathway');
+        messageQueue.push(msg);
         messageQueue.forEach((msg) => {
-          const obj = {
-            message: msg,
+          const messageObject = {
+            event: '-', // keypressed, keyreleased, gameState, gameOver
+            msg,
             timestamp: new Date(),
           };
-          dataChannel.send(JSON.stringify(obj));
+          dataChannel.send(JSON.stringify(messageObject));
         });
+        messageQueue.pop();
         break;
       case 'closing':
         console.log('Attempted to send message while closing: ' + msg);
@@ -180,18 +189,51 @@ export const BattletronicsGameScreen = () => {
     }
   };
 
+  const emitGameState = (gameState: any) => {
+    const state = JSON.stringify({ gameState: gameState });
+    dataChannel?.send(state);
+  };
+
+  const emitGameOver = (roomName: string, winner: number, gameState: any) => {
+    dataChannel?.send(JSON.stringify({ type: 'gameOver' }));
+  };
+
+  const keyEvent = (type: string, key: number) => {
+    dataChannel?.send(JSON.stringify({ type, key }));
+  };
+
   return (
     <Container>
-      <Title>BATTLETRONICS BRAWL</Title> <Button onClick={createGame}>Create Game</Button>
-      <Spacer height={15} />
-      <Input
-        placeholder="Code..."
-        value={gameInput ?? null}
-        onChange={(event) => setGameInput(event.target.value)}
-      ></Input>
-      <Button onClick={joinGame}>Join Game</Button>
-      <Subtitle>[Controls]: Arrows to move, G to fire, H to pick up.</Subtitle>
-      <Button onClick={() => sendMessage('CHECK HCECK')}>MSG</Button>
+      {isGameActive && dataChannel ? (
+        <Game
+          gameCode={gameInput}
+          sendMessage={sendMessage}
+          keyEvent={keyEvent}
+          emitGameState={emitGameState}
+          emitGameOver={emitGameOver}
+          gameStateTop={gameState}
+        />
+      ) : (
+        <>
+          <ModalOverlay style={{ display: isCreateCallModalActive ? 'flex' : 'none' }}>
+            <Title style={{ textAlign: 'center' }}>
+              Share game code with friend: <br />
+              {gameInput}
+            </Title>
+            <Button onClick={closeCreateCallModal}>Done</Button>
+          </ModalOverlay>
+          <Title>BATTLETRONICS BRAWL</Title> <Button onClick={createGame}>Create Game</Button>
+          <Spacer height={15} />
+          <Input
+            placeholder="Code..."
+            value={gameInput ?? null}
+            onChange={(event) => setGameInput(event.target.value)}
+          ></Input>
+          <Button onClick={joinGame}>Join Game</Button>
+          <Subtitle>[Controls]: Arrows to move, G to fire, H to pick up.</Subtitle>
+          <Button onClick={() => sendMessage('CHECK HCECK')}>MSG</Button>
+        </>
+      )}
     </Container>
   );
 };

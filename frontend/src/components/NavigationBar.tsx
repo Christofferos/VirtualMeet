@@ -20,7 +20,11 @@ const ListItem = styled.li`
 export const NavigationBar = () => {
   let navigate = useNavigate();
   return (
-    <nav className="navbar navbar-default navbar-inverse navbar-static-top" role="navigation">
+    <nav
+      className="navbar navbar-default navbar-inverse navbar-static-top"
+      role="navigation"
+      style={{ marginBottom: '0px' }}
+    >
       <div className="navbar-collapse" id="navbar-brand-centered" style={{ textAlign: 'center' }}>
         <ul className="nav navbar-nav">
           <ListItem onClick={() => navigate(`/`)}>

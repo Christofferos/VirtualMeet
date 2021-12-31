@@ -9,6 +9,7 @@ import { Instructions } from '../components/Instructions';
 import { Spacer } from '../components/Spacer';
 import { Button } from '../components/Button';
 import { Container } from '../components/Container';
+import { ModalOverlay } from '../components/ModalOverlay';
 
 const { v4: uuidv4 } = require('uuid');
 
@@ -24,19 +25,6 @@ const VideoContainer = styled.div`
   width: 100%;
   grid-template-columns: repeat(auto-fit, minmax(240px, 2fr));
   grid-gap: 1rem;
-`;
-
-const ModalOverlay = styled.div`
-  position: absolute;
-  flex-direction: column;
-  top: 0%;
-  right: 0%;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(205, 133, 63, 0.6);
-  z-index: 2;
-  align-items: center;
-  justify-content: center;
 `;
 
 interface IPeripheral {
