@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import adapter from 'webrtc-adapter';
 
@@ -43,24 +43,22 @@ export const BattletronicsGameScreen = () => {
     }),
     [],
   );
+  const [playerN, setPlayerN] = useState<number>(0);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
   const [gameInput, setGameInput] = useState<string>('');
   const peerConnection = useMemo(() => new RTCPeerConnection(servers), [servers]);
   const [dataChannel, setDataChannel] = useState<RTCDataChannel | null>(null);
   const [isCreateCallModalActive, setIsCreateCallModalActive] = useState<boolean>(false);
 
-  const [gameState, setGameState] = useState<any>(null);
+  const gameRef = useRef<any>();
 
   useEffect(() => {
     if (!dataChannel) return;
     console.log('CHANGE MADE TO PEERCONNECTION', dataChannel);
     dataChannel.onmessage = (event: any) => {
       const parsedData = JSON.parse(event.data);
-      // console.log('PARSED DATA ', parsedData, parsedData.gameState);
-      // alert('logs');
       if (!parsedData.gameState) return;
-      // alert('logs reached');
-      setGameState(parsedData.gameState);
+      gameRef.current.getGameStatePeer(parsedData.gameState);
     };
     dataChannel.onopen = () => console.log("Receive channel's status has changed to OPEN");
     dataChannel.onclose = () => console.log("Receive channel's status has changed to CLOSE");
@@ -113,6 +111,7 @@ export const BattletronicsGameScreen = () => {
           peerConnection.addIceCandidate(candidate);
         }
         setIsGameActive(true);
+        setPlayerN(0);
       });
     });
   };
@@ -152,6 +151,7 @@ export const BattletronicsGameScreen = () => {
           peerConnection.addIceCandidate(new RTCIceCandidate(data));
         }
         setIsGameActive(true);
+        setPlayerN(1);
       });
     });
   };
@@ -207,11 +207,11 @@ export const BattletronicsGameScreen = () => {
       {isGameActive && dataChannel ? (
         <Game
           gameCode={gameInput}
-          sendMessage={sendMessage}
           keyEvent={keyEvent}
           emitGameState={emitGameState}
           emitGameOver={emitGameOver}
-          gameStateTop={gameState}
+          playerN={playerN}
+          ref={gameRef}
         />
       ) : (
         <>
