@@ -6,9 +6,10 @@ _A low-latency video calling application_
   <img src="branding/previwImgVirtualMeet1.png" width="100" />
   <img src="branding/previwImgVirtualMeet2.png" width="100" /> 
   <img src="branding/previwImgVirtualMeet3.png" width="100" /> 
+  <img src="branding/previwImgBattleTronics4.png" width="240" /> 
 </p>
 
-Try it out live (use two devices): 
+Try it out live (use two devices):
 https://virtualmeetrtc.herokuapp.com/
 
 ## Run the code yourself:
@@ -35,7 +36,7 @@ https://virtualmeetrtc.herokuapp.com/
 
 - Scale down video if device width is smaller than output video ✅
 - Allow for more than 2 people to join the call
-- Talk | Virtual Meet | Play
+- Talk | Virtual Meet | Play ✅
 - Center formatting and other design ✅
 - Challenge someone that is online to play with
 - Add timer to environment events

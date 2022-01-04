@@ -231,7 +231,7 @@ export const BattletronicsGameScreen = () => {
           ></Input>
           <Button onClick={joinGame}>Join Game</Button>
           <Subtitle>[Controls]: Arrows to move, G to fire, H to pick up.</Subtitle>
-          <Button onClick={() => sendMessage('CHECK HCECK')}>MSG</Button>
+          {/* <Button onClick={() => sendMessage('CHECK HCECK')}>MSG</Button> */}
         </>
       )}
     </Container>
