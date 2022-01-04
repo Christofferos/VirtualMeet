@@ -99,6 +99,7 @@ export const Game = forwardRef(
             if (p.id === opponentID + 1) return opponentPlayer;
             else return p;
           }),
+          walls: state.walls,
         }));
         refState.current.players[opponentID] = opponentPlayer;
         /* setGameState((prevState: any) => ({
