@@ -102,6 +102,7 @@ export const Game = forwardRef(
           walls: state.walls,
         }));
         refState.current.players[opponentID] = opponentPlayer;
+        refState.current.walls = state.walls;
         /* setGameState((prevState: any) => ({
             ...prevState, 
         })); // state
@@ -163,10 +164,15 @@ export const Game = forwardRef(
       }
       gameStateTemp.walls.movable.push({ x: 77, y: 17 });
       console.log('2');
+      const generatedWalls = {
+        solid: gameStateTemp.walls.solid,
+        movable: gameStateTemp.walls.movable,
+      };
       setGameState((prevState: any) => ({
         ...prevState,
-        walls: { solid: gameStateTemp.walls.solid, movable: gameStateTemp.walls.movable },
+        walls: generatedWalls,
       }));
+      refState.current.walls = generatedWalls;
     };
 
     /* ### [Keypressed]: Called from eventListener (Left, Up, Right, Down, G, H). ### */
