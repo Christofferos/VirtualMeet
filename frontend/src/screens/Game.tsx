@@ -91,8 +91,20 @@ export const Game = forwardRef(
     useImperativeHandle(ref, () => ({
       getGameStatePeer(state: any) {
         console.log('1');
-        setGameState(state);
-        refState.current = state;
+        const opponentID = playerN === 1 ? 0 : 1;
+        const opponentPlayer = state.players[opponentID];
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === opponentID + 1) return opponentPlayer;
+            else return p;
+          }),
+        }));
+        refState.current.players[opponentID] = opponentPlayer;
+        /* setGameState((prevState: any) => ({
+            ...prevState, 
+        })); // state
+        refState.current = state; */
       },
     }));
 
