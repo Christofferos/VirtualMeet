@@ -34,6 +34,9 @@ https://virtualmeetrtc.herokuapp.com/
 
 ## TODO LIST:
 
+- Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame
+- Add images with base64: https://onlinepngtools.com/convert-png-to-base64
+- [!] Check out simple-peer for 4 clients mode: https://github.com/feross/simple-peer#connecting-more-than-2-peers
 - Scale down video if device width is smaller than output video ✅
 - Allow for more than 2 people to join the call
 - Talk | Virtual Meet | Play ✅

@@ -75,7 +75,7 @@ export const BattletronicsGameScreen = () => {
     // Reference Firestore collections for signaling
     const gameCode = makeId(3);
     setDataChannel(peerConnection.createDataChannel(`Battletronics-${gameCode}`));
-    // console.log('GAMECODE: ', gameCode);
+    console.log('GAMECODE: ', gameCode);
     setGameInput(gameCode);
     setIsCreateCallModalActive(true);
     const gameDoc = firestore.collection(GAMES_COLLECTION_KEY).doc(gameCode);
@@ -83,7 +83,6 @@ export const BattletronicsGameScreen = () => {
     const answerCandidates = gameDoc.collection(ANSWER_CANDIDATES_KEY);
     // Get candidates for caller, save to db
     peerConnection.onicecandidate = (event) => {
-      console.log('Conn successful (A)');
       event.candidate && offerCandidates.add(event.candidate.toJSON());
     };
     // Create offer
@@ -99,7 +98,6 @@ export const BattletronicsGameScreen = () => {
       const data = snapshot.data();
       if (!peerConnection.currentRemoteDescription && data?.answer) {
         const answerDescription = new RTCSessionDescription(data.answer);
-        console.log('set remote description (A)');
         peerConnection.setRemoteDescription(answerDescription);
       }
     });
@@ -127,14 +125,12 @@ export const BattletronicsGameScreen = () => {
     const offerCandidates = callDoc.collection(OFFER_CANDIDATES_KEY);
     const answerCandidates = callDoc.collection(ANSWER_CANDIDATES_KEY);
     peerConnection.onicecandidate = (event) => {
-      console.log('Conn successful (B)');
       event.candidate && answerCandidates.add(event.candidate.toJSON());
     };
     // Fetch data, then set the offer & answer
     const callData = (await callDoc.get()).data();
     if (!callData) return;
     const offerDescription = callData.offer;
-    console.log('set remote description (B)');
     await peerConnection.setRemoteDescription(new RTCSessionDescription(offerDescription));
     const answerDescription = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answerDescription);
@@ -160,54 +156,32 @@ export const BattletronicsGameScreen = () => {
     setIsCreateCallModalActive(false);
   };
 
-  const messageQueue: string[] = [];
-  const sendMessage = (msg: string) => {
+  const emitGameState = (gameState: any) => {
     switch (dataChannel?.readyState) {
       case 'connecting':
-        console.log('Connection not open; queueing: ' + msg);
-        messageQueue.push(msg);
+        console.log('[CONNECTING] Attempted to send during channel connecting.');
         break;
       case 'open':
-        console.log('OPEN message pathway');
-        messageQueue.push(msg);
-        messageQueue.forEach((msg) => {
-          const messageObject = {
-            event: '-', // keypressed, keyreleased, gameState, gameOver
-            msg,
-            timestamp: new Date(),
-          };
-          dataChannel.send(JSON.stringify(messageObject));
-        });
-        messageQueue.pop();
+        const state = JSON.stringify({ gameState: gameState });
+        dataChannel?.send(state);
         break;
       case 'closing':
-        console.log('Attempted to send message while closing: ' + msg);
+        console.log('[CLOSING] Attempted to send during channel closing.');
         break;
       case 'closed':
-        console.log('Error! Attempt to send while connection closed.');
+        console.log('[CLOSED] Attempted to send during channel closed.');
         break;
     }
-  };
-
-  const emitGameState = (gameState: any) => {
-    const state = JSON.stringify({ gameState: gameState });
-    dataChannel?.send(state);
   };
 
   const emitGameOver = (roomName: string, winner: number, gameState: any) => {
     dataChannel?.send(JSON.stringify({ type: 'gameOver' }));
   };
 
-  const keyEvent = (type: string, key: number) => {
-    dataChannel?.send(JSON.stringify({ type, key }));
-  };
-
   return (
     <Container>
       {isGameActive && dataChannel ? (
         <Game
-          gameCode={gameInput}
-          keyEvent={keyEvent}
           emitGameState={emitGameState}
           emitGameOver={emitGameOver}
           playerN={playerN}
@@ -231,7 +205,6 @@ export const BattletronicsGameScreen = () => {
           ></Input>
           <Button onClick={joinGame}>Join Game</Button>
           <Subtitle>[Controls]: Arrows to move, G to fire, H to pick up.</Subtitle>
-          {/* <Button onClick={() => sendMessage('CHECK HCECK')}>MSG</Button> */}
         </>
       )}
     </Container>
