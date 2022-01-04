@@ -43,7 +43,7 @@ export const BattletronicsGameScreen = () => {
     }),
     [],
   );
-  const [playerN, setPlayerN] = useState<number | null>(null);
+  const [playerN, setPlayerN] = useState<number>(0);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
   const [gameInput, setGameInput] = useState<string>('');
   const peerConnection = useMemo(() => new RTCPeerConnection(servers), [servers]);
@@ -151,9 +151,9 @@ export const BattletronicsGameScreen = () => {
           peerConnection.addIceCandidate(new RTCIceCandidate(data));
         }
         setIsGameActive(true);
-        setPlayerN(1);
       });
     });
+    setPlayerN(1);
   };
 
   const closeCreateCallModal = () => {
@@ -204,7 +204,7 @@ export const BattletronicsGameScreen = () => {
 
   return (
     <Container>
-      {isGameActive && dataChannel && playerN ? (
+      {isGameActive && dataChannel ? (
         <Game
           gameCode={gameInput}
           keyEvent={keyEvent}

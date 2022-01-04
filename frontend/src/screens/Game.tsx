@@ -163,10 +163,10 @@ export const Game = forwardRef(
         gameStateTemp.walls.movable.push({ x: 72, y: i });
       }
       gameStateTemp.walls.movable.push({ x: 77, y: 17 });
-      console.log('2');
       const generatedWalls = {
         solid: gameStateTemp.walls.solid,
         movable: gameStateTemp.walls.movable,
+        wallsize: WALL_SIZE,
       };
       setGameState((prevState: any) => ({
         ...prevState,
@@ -231,6 +231,7 @@ export const Game = forwardRef(
       const TEMP_DEFAULT_STATE = DEFAULT_GAME_STATE;
       TEMP_DEFAULT_STATE.scores.P1 = scoreInput[0];
       TEMP_DEFAULT_STATE.scores.P2 = scoreInput[1];
+      TEMP_DEFAULT_STATE.players.forEach((player) => (player.lives = 3));
       initializePlayingField();
       return TEMP_DEFAULT_STATE;
     }, []);
@@ -368,6 +369,7 @@ export const Game = forwardRef(
             }, 10000);
           }
         }
+        console.log('LIVES: ', playerOne.lives, playerTwo.lives);
         /* ## IMPORTANT for P1 ## */
         if (playerOne.lives <= 0) return 2;
         // ## !IDEA: Make it so that gold can be collected, and upgrade some feature in-game. ##
@@ -514,7 +516,6 @@ export const Game = forwardRef(
       const { x: p2NowX, y: p2NowY } = gameState.players[1].pos;
       const { x: p1HistoryX, y: p1HistoryY } = prevGameState.players[0].pos;
       const { x: p2HistoryX, y: p2HistoryY } = prevGameState.players[1].pos;
-      // console.log('COORDINATES: ', p1NowX, p1NowY, p1HistoryX, p1HistoryY, playerN);
       const clientMoved =
         (playerN === 0 && (p1NowX !== p1HistoryX || p1NowY !== p1HistoryY)) ||
         (playerN === 1 && (p2NowX !== p2HistoryX || p2NowY !== p2HistoryY));
@@ -523,8 +524,7 @@ export const Game = forwardRef(
 
     const startGameInterval = useCallback(
       (roomName: string) => {
-        let prevGameState = gameState; // refState instead of prevGameState !! refState used in movement
-        // setInterval(() => alert('ChECK'), 5000);
+        let prevGameState = gameState;
         let intervalId = setInterval(
           () => intervalIdProcedure(refState.current),
           1000 / FRAME_RATE,
@@ -533,35 +533,35 @@ export const Game = forwardRef(
           let winner = gameLoop(gameState, prevGameState);
           if (!winner) {
             if (hasClientMoved(gameState, prevGameState)) {
-              console.log('HAS CLIENT MOVED ', hasClientMoved(gameState, prevGameState));
               prevGameState = gameState;
               emitGameState(gameState);
             }
-            // handleGameState();
           } else {
-            clearInterval(intervalId);
-            if (winner === 1 || winner === -1) gameState.scores.P1++;
-            if (winner === 2 || winner === -1) gameState.scores.P2++;
-            emitGameOver(roomName, winner, {
+            let p1Score = gameState.scores.P1;
+            let p2Score = gameState.scores.P2;
+            if (winner === 1 || winner === -1) p1Score++;
+            if (winner === 2 || winner === -1) p2Score++;
+            /* emitGameOver(roomName, winner, {
               P1: gameState.scores.P1,
               P2: gameState.scores.P2,
-            });
-            //
-            if (Math.max(gameState.scores.P1, gameState.scores.P2) < WINNING_SCORE) {
-              const state = resetGameState([gameState.scores.P1, gameState.scores.P2]);
-              randomFood();
-              console.log('4');
+            }); */
+            if (Math.max(p1Score, p2Score) < WINNING_SCORE) {
+              /* clearInterval(intervalId); */
+              const state = resetGameState([p1Score, p2Score]);
+              // randomFood();
               setGameState(state);
-              setTimeout(
+              refState.current = state;
+              /* setTimeout(
                 () =>
                   (intervalId = setInterval(
-                    () => intervalIdProcedure(gameState),
+                    () => intervalIdProcedure(refState.current),
                     1000 / FRAME_RATE,
                   )),
                 DELAY_BETWEEN_ROUNDS,
-              );
+              ); */
             } else {
-              setGameState(null);
+              const state = resetGameState([p1Score, p2Score]);
+              setGameState(state);
             }
           }
         };
@@ -571,7 +571,6 @@ export const Game = forwardRef(
 
     useEffect(() => {
       initializePlayingField();
-      // resetGameState([0, 0]);
       randomFood();
       console.log('5');
       startGameInterval(gameCode);
