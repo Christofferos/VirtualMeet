@@ -591,7 +591,7 @@ export const Game = forwardRef(
           space = new Rect(player.pos.x + playerSize, player.pos.y, wallSize, wallSize);
         }
         // Check if movable wall instersects with other movable walls.
-        for (let i = 0; i < gameState.walls.movable.length; i++) {
+        /* for (let i = 0; i < gameState.walls.movable.length; i++) {
           if (
             space?.intersects(
               new Rect(
@@ -604,7 +604,7 @@ export const Game = forwardRef(
           ) {
             return false;
           }
-        }
+        } */
         gameState.walls.movable.push({ x: space?.x, y: space?.y });
         return true;
       },
