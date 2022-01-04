@@ -831,6 +831,7 @@ export const Game = forwardRef(({ emitGameState, emitGameOver, playerN }: IGame,
           backgroundImage: 'linear-gradient(to bottom right, #050a28, #1a1a1a)',
           width: '99.5vw',
           height: '94.5vh',
+          userSelect: 'none',
         }}
       >
         <div id="gameScreen" style={{ height: '90vh' }}>
