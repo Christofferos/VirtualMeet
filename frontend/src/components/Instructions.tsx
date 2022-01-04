@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Button } from './Button';
 import { Input } from './Input';
 import { Spacer } from './Spacer';
@@ -30,6 +31,10 @@ export const Instructions = (props: {
       </Button>
     </>
   );
+
+  useEffect(() => {
+    props.toggleMic();
+  }, [props]);
 
   const callInstruction = (
     <>

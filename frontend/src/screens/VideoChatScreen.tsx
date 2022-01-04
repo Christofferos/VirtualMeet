@@ -38,7 +38,7 @@ export const VideoChatScreen = () => {
   const [callInput, setCallInput] = useState<any>(null);
   const [isCreateCallModalActive, setIsCreateCallModalActive] = useState<boolean>(false);
   const [peripheralStatus, setPeripheralStatus] = useState<IPeripheral>({
-    isMicEnabled: false,
+    isMicEnabled: true,
     isCamEnabled: true,
   });
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
