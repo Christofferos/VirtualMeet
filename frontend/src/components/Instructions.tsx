@@ -32,10 +32,6 @@ export const Instructions = (props: {
     </>
   );
 
-  useEffect(() => {
-    props.toggleMic();
-  }, [props]);
-
   const callInstruction = (
     <>
       <Button id="callButton" onClick={props.startCall}>

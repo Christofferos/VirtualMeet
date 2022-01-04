@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
 import { firestore } from '../firebase';
@@ -38,7 +38,7 @@ export const VideoChatScreen = () => {
   const [callInput, setCallInput] = useState<any>(null);
   const [isCreateCallModalActive, setIsCreateCallModalActive] = useState<boolean>(false);
   const [peripheralStatus, setPeripheralStatus] = useState<IPeripheral>({
-    isMicEnabled: true,
+    isMicEnabled: false,
     isCamEnabled: true,
   });
   const [isCallActive, setIsCallActive] = useState<boolean>(false);
@@ -79,6 +79,7 @@ export const VideoChatScreen = () => {
         video: true,
         audio: true,
       });
+      videoAudioStream.getAudioTracks()[0].enabled = false;
       setLocalStream(videoAudioStream);
     } catch {
       console.log('Webcam was not found for device.');
@@ -178,12 +179,16 @@ export const VideoChatScreen = () => {
     });
   };
 
-  const toggleMic = async () => {
+  const toggleMic = useCallback(async () => {
     if (!localStream) return;
     const newMicState = !localStream.getAudioTracks()[0].enabled;
     setPeripheralStatus((prevState) => ({ ...prevState, isMicEnabled: newMicState }));
     localStream.getAudioTracks()[0].enabled = newMicState;
-  };
+  }, [localStream]);
+
+  useEffect(() => {
+    if (isCallActive) toggleMic();
+  }, [isCallActive, toggleMic]);
 
   const toggleCam = async () => {
     const newCamState = !localStream.getVideoTracks()[0].enabled;
