@@ -570,8 +570,8 @@ export const Game = forwardRef(
     );
 
     useEffect(() => {
-      // initializePlayingField();
-      resetGameState([0, 0]);
+      initializePlayingField();
+      // resetGameState([0, 0]);
       randomFood();
       console.log('5');
       startGameInterval(gameCode);

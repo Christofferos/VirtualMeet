@@ -43,7 +43,7 @@ export const BattletronicsGameScreen = () => {
     }),
     [],
   );
-  const [playerN, setPlayerN] = useState<number>(0);
+  const [playerN, setPlayerN] = useState<number | null>(null);
   const [isGameActive, setIsGameActive] = useState<boolean>(false);
   const [gameInput, setGameInput] = useState<string>('');
   const peerConnection = useMemo(() => new RTCPeerConnection(servers), [servers]);
@@ -204,7 +204,7 @@ export const BattletronicsGameScreen = () => {
 
   return (
     <Container>
-      {isGameActive && dataChannel ? (
+      {isGameActive && dataChannel && playerN ? (
         <Game
           gameCode={gameInput}
           keyEvent={keyEvent}
