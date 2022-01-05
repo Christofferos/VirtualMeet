@@ -9,8 +9,7 @@ _A low-latency video calling application_
   <img src="branding/previwImgBattleTronics4.png" width="240" /> 
 </p>
 
-Try it out live (use two devices):
-https://virtualmeetrtc.herokuapp.com/
+Try it out live (use two devices): https://virtualmeetrtc.herokuapp.com/
 
 ## Run the code yourself:
 
@@ -34,9 +33,14 @@ https://virtualmeetrtc.herokuapp.com/
 
 ## TODO LIST:
 
+A mesh network topology should work well up to 4 clients according to multiple sources.
+
+<img src="branding/meshNetworkTopologyV2.png" width="150" />
+
 - Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame
 - Add images with base64: https://onlinepngtools.com/convert-png-to-base64
-- [!] Check out simple-peer for 4 clients mode: https://github.com/feross/simple-peer#connecting-more-than-2-peers
+- [!] Check out simple-peer for 4 clients mode:
+  https://github.com/feross/simple-peer#connecting-more-than-2-peers
 - Scale down video if device width is smaller than output video ✅
 - Allow for more than 2 people to join the call
 - Talk | Virtual Meet | Play ✅
@@ -46,6 +50,10 @@ https://virtualmeetrtc.herokuapp.com/
 - Publish on Heroku ✅
 - Idea: What is the object? Recognition (https://www.youtube.com/watch?v=01sAkU_NvOY)
   (https://data-flair.training/blogs/data-science-project-ideas/)
+
+Bit rate results from N clients in mesh network (marked in blue)
+
+<img src="branding/meshNetworkTopologyResults.png" width="375" />
 
 ## Deep Dive - Details:
 
