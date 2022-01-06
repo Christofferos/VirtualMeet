@@ -5,19 +5,16 @@ import { Spacer } from '../components/Spacer';
 import {
   BG_COLOR,
   CANVAS_WIDTH,
-  DELAY_BETWEEN_ROUNDS,
   FLASH_COLOR,
   FRAME_RATE,
   GRID_SIZE,
   PLAYER_1_COLOR,
   PLAYER_2_COLOR,
-  POWER_UP_COLOR,
-  WALL_COLOR,
+  PLAYER_3_COLOR,
+  PLAYER_4_COLOR,
   WALL_SIZE,
-  WINNING_SCORE,
 } from '../utils/constants';
 import { Rect } from '../utils/rectangleModule';
-/* Color scheme: 050A28, 0E1D34, 1A1A1A. green, red. */
 
 const SOLID_WALL_IMG = new Image();
 const MOVABLE_WALL_IMG = new Image();
@@ -30,57 +27,39 @@ HEALTH_IMG.src =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAACaSURBVChTVY/BCsIwEERf2kZNhSJa8SAeRPD/f60tKkrTddLUgwtDdpjZ3YkDzKigrmG9gsmECYYBxyh11yZDxjgK0cz5zLeNFdoAZQlNA04LC+HY5r7yOPPBePbZ9KsYMz+dKajDv5gqGRK6TgZlotrA5TrHnYXbHbwGQ9AJhZmn0s33I79JXEps+eZhD/2gkMqdTFPEfV58AS86O1tc/01yAAAAAElFTkSuQmCC';
 
 const wallDim = 4;
+const playerStartingPositions = [
+  { x: 1, y: 1 },
+  { x: GRID_SIZE - wallDim - 1, y: GRID_SIZE - wallDim - 1 },
+  { x: GRID_SIZE - wallDim - 1, y: 1 },
+  { x: 1, y: GRID_SIZE - wallDim - 1 },
+];
 const DEFAULT_GAME_STATE = {
-  players: [
-    {
-      id: 1,
-      fireRateDelay: 100,
-      pos: {
-        x: 1,
-        y: 1,
-      },
-      directionPreference: [],
-      dxdy: {
-        x: 0,
-        y: 0,
-      },
-      dir: 'UP',
-      bullets: [],
-      reload: false,
-      lives: 3,
-      inventorySpace: 3,
-      inventoryAction: false,
-      inventoryCooldown: false,
-      playersize: WALL_SIZE,
+  players: [...Array(4)].map((_, id) => ({
+    id: id + 1,
+    fireRateDelay: 100,
+    pos: playerStartingPositions[id],
+    directionPreference: [],
+    dxdy: {
+      x: 0,
+      y: 0,
     },
-    {
-      id: 2,
-      fireRateDelay: 100,
-      pos: {
-        x: GRID_SIZE - wallDim - 1,
-        y: GRID_SIZE - wallDim - 1,
-      },
-      directionPreference: [],
-      dxdy: {
-        x: 0,
-        y: 0,
-      },
-      dir: 'UP',
-      bullets: [],
-      reload: false,
-      lives: 3,
-      inventorySpace: 3,
-      inventoryCooldown: false,
-      playersize: WALL_SIZE,
-    },
-  ],
+    dir: 'UP',
+    bullets: [],
+    reload: false,
+    lives: 3,
+    isDead: false,
+    inventorySpace: 3,
+    inventoryAction: false,
+    inventoryCooldown: false,
+    playersize: WALL_SIZE,
+  })),
   walls: {
     wallsize: WALL_SIZE,
     solid: [],
     movable: [],
   },
   food: {},
-  scores: { P1: 0, P2: 0 },
+  scores: { P1: 0, P2: 0, P3: 0, P4: 0 },
   gridsize: GRID_SIZE,
 };
 
@@ -88,795 +67,780 @@ interface IGame {
   emitGameState: (state: any) => void;
   emitGameOver: (roomName: string, winner: number, state: any) => void;
   playerN: number;
+  playerCount: number;
 }
 
-export const Game = forwardRef(({ emitGameState, emitGameOver, playerN }: IGame, ref) => {
-  const [gameState, setGameState] = useState<any>(DEFAULT_GAME_STATE);
-  const refState = useRef<any>(DEFAULT_GAME_STATE);
-  const flashRef = useRef<number[]>([0, 0]);
+export const Game = forwardRef(
+  ({ emitGameState, emitGameOver, playerN, playerCount }: IGame, ref) => {
+    const [gameState, setGameState] = useState<any>(DEFAULT_GAME_STATE);
+    const refState = useRef<any>(DEFAULT_GAME_STATE);
+    const flashRef = useRef<number[]>([0, 0, 0, 0]);
 
-  useImperativeHandle(ref, () => ({
-    getGameStatePeer(state: any) {
-      const opponentID = playerN === 1 ? 0 : 1;
-      const opponentPlayer = state.players[opponentID];
+    useImperativeHandle(ref, () => ({
+      getGameStatePeer(state: any, playerID: number) {
+        const opponentPlayer = state.players[playerID];
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerID + 1) return opponentPlayer;
+            else return p;
+          }),
+          walls: state.walls,
+          food: state.food.x ? state.food : prevState.food,
+        }));
+        refState.current.players[playerID] = opponentPlayer;
+        refState.current.walls = state.walls;
+        refState.current.food = state.food.x ? state.food : gameState.food;
+      },
+    }));
+
+    // FROM LEFT TO RIGHT. TOP TO BOTTOM.
+    const initializePlayingField = useCallback(() => {
+      const gameStateTemp = gameState;
+      for (let i = 16; i < 36; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 10, y: i });
+      }
+      for (let i = 56; i < 76; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 10, y: i });
+      }
+      for (let i = 10; i < 32; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: i, y: 87 });
+      }
+      for (let i = 26; i < 34; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: i, y: 8 });
+      }
+      for (let i = 24; i < 52; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 26, y: i });
+      }
+      for (let i = 0; i < 8; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 64, y: i });
+      }
+      for (let i = 60; i < 80; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: i, y: 87 });
+      }
+      for (let i = 40; i < 64; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 71, y: i });
+      }
+      for (let i = 20; i < 36; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 86, y: i });
+      }
+      for (let i = 52; i < 72; i += wallDim) {
+        gameStateTemp.walls.solid.push({ x: 86, y: i });
+      }
+      // Movable walls
+      gameStateTemp.walls.movable.push({ x: 3, y: 32 });
+      gameStateTemp.walls.movable.push({ x: 3, y: 56 });
+      gameStateTemp.walls.movable.push({ x: 93, y: 32 });
+      gameStateTemp.walls.movable.push({ x: 93, y: 52 });
+      gameStateTemp.walls.movable.push({ x: 45, y: 96 });
+      for (let i = 44; i < 58; i += wallDim + 1) {
+        gameStateTemp.walls.movable.push({ x: i, y: 4 });
+      }
+      for (let i = 20; i < 32; i += wallDim + 1) {
+        gameStateTemp.walls.movable.push({ x: i, y: 76 });
+      }
+      for (let i = 72; i < 84; i += wallDim + 1) {
+        gameStateTemp.walls.movable.push({ x: 60, y: i });
+      }
+      for (let i = 12; i < 20; i += wallDim + 1) {
+        gameStateTemp.walls.movable.push({ x: 72, y: i });
+      }
+      gameStateTemp.walls.movable.push({ x: 77, y: 17 });
+      const generatedWalls = {
+        solid: gameStateTemp.walls.solid,
+        movable: gameStateTemp.walls.movable,
+        wallsize: WALL_SIZE,
+      };
       setGameState((prevState: any) => ({
         ...prevState,
-        players: prevState.players.map((p: any) => {
-          if (p.id === opponentID + 1) return opponentPlayer;
-          else return p;
-        }),
-        walls: state.walls,
-        food: state.food.x ? state.food : prevState.food,
+        walls: generatedWalls,
       }));
-      refState.current.players[opponentID] = opponentPlayer;
-      refState.current.walls = state.walls;
-      refState.current.food = state.food.x ? state.food : gameState.food;
-    },
-  }));
+      refState.current.walls = generatedWalls;
+    }, [gameState]);
 
-  // FROM LEFT TO RIGHT. TOP TO BOTTOM.
-  const initializePlayingField = useCallback(() => {
-    const gameStateTemp = gameState;
-    for (let i = 16; i < 36; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 10, y: i });
-    }
-    for (let i = 56; i < 76; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 10, y: i });
-    }
-    for (let i = 10; i < 32; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: i, y: 87 });
-    }
-    for (let i = 26; i < 34; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: i, y: 8 });
-    }
-    for (let i = 24; i < 52; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 26, y: i });
-    }
-    for (let i = 0; i < 8; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 64, y: i });
-    }
-    for (let i = 60; i < 80; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: i, y: 87 });
-    }
-    for (let i = 40; i < 64; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 71, y: i });
-    }
-    for (let i = 20; i < 36; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 86, y: i });
-    }
-    for (let i = 52; i < 72; i += wallDim) {
-      gameStateTemp.walls.solid.push({ x: 86, y: i });
-    }
-    // Movable walls
-    gameStateTemp.walls.movable.push({ x: 3, y: 32 });
-    gameStateTemp.walls.movable.push({ x: 3, y: 56 });
-    gameStateTemp.walls.movable.push({ x: 93, y: 32 });
-    gameStateTemp.walls.movable.push({ x: 93, y: 52 });
-    gameStateTemp.walls.movable.push({ x: 45, y: 96 });
-    for (let i = 44; i < 58; i += wallDim + 1) {
-      gameStateTemp.walls.movable.push({ x: i, y: 4 });
-    }
-    for (let i = 20; i < 32; i += wallDim + 1) {
-      gameStateTemp.walls.movable.push({ x: i, y: 76 });
-    }
-    for (let i = 72; i < 84; i += wallDim + 1) {
-      gameStateTemp.walls.movable.push({ x: 60, y: i });
-    }
-    for (let i = 12; i < 20; i += wallDim + 1) {
-      gameStateTemp.walls.movable.push({ x: 72, y: i });
-    }
-    gameStateTemp.walls.movable.push({ x: 77, y: 17 });
-    const generatedWalls = {
-      solid: gameStateTemp.walls.solid,
-      movable: gameStateTemp.walls.movable,
-      wallsize: WALL_SIZE,
-    };
-    setGameState((prevState: any) => ({
-      ...prevState,
-      walls: generatedWalls,
-    }));
-    refState.current.walls = generatedWalls;
-  }, [gameState]);
+    const resetGameState = useCallback(
+      (scoreInput: number[]) => {
+        const TEMP_DEFAULT_STATE = DEFAULT_GAME_STATE;
+        TEMP_DEFAULT_STATE.scores.P1 = scoreInput[0];
+        TEMP_DEFAULT_STATE.scores.P2 = scoreInput[1];
+        TEMP_DEFAULT_STATE.scores.P3 = scoreInput[2];
+        TEMP_DEFAULT_STATE.scores.P4 = scoreInput[3];
 
-  const resetGameState = useCallback(
-    (scoreInput: number[]) => {
-      const TEMP_DEFAULT_STATE = DEFAULT_GAME_STATE;
-      TEMP_DEFAULT_STATE.scores.P1 = scoreInput[0];
-      TEMP_DEFAULT_STATE.scores.P2 = scoreInput[1];
-      TEMP_DEFAULT_STATE.players.forEach((player) => {
-        if (player.id === 1) {
-          player.pos.x = 1;
-          player.pos.y = 1;
-        } else if (player.id === 2) {
-          player.pos.x = GRID_SIZE - wallDim - 1;
-          player.pos.y = GRID_SIZE - wallDim - 1;
-        }
-        player.lives = 3;
-      });
-      TEMP_DEFAULT_STATE.walls = { wallsize: WALL_SIZE, solid: [], movable: [] };
-      initializePlayingField();
-      return TEMP_DEFAULT_STATE;
-    },
-    [initializePlayingField],
-  );
+        TEMP_DEFAULT_STATE.players[0].pos.x = 1;
+        TEMP_DEFAULT_STATE.players[0].pos.y = 1;
+        TEMP_DEFAULT_STATE.players[0].lives = 3;
+        TEMP_DEFAULT_STATE.players[0].isDead = false;
 
-  const randomFood = useCallback(() => {
-    if (playerN !== 0) return;
-    const food = {
-      x: Math.floor(GRID_SIZE / 4 + Math.random() * (GRID_SIZE / 2)),
-      y: Math.floor(GRID_SIZE / 4 + Math.random() * (GRID_SIZE / 2)),
-    };
-    setGameState((prevState: any) => ({ ...prevState, food: food }));
-    refState.current.food = food;
-  }, [playerN]);
+        TEMP_DEFAULT_STATE.players[1].pos.x = GRID_SIZE - wallDim - 1;
+        TEMP_DEFAULT_STATE.players[1].pos.y = GRID_SIZE - wallDim - 1;
+        TEMP_DEFAULT_STATE.players[1].lives = 3;
+        TEMP_DEFAULT_STATE.players[1].isDead = false;
 
-  const collision = useCallback((player: any, checkForMovableWall: boolean, gameState: any) => {
-    if (!gameState) return false;
-    let x1 = 0;
-    // let x2 = 0;
-    let y1 = 0;
-    // let y2 = 0;
-    // Check one step ahead
-    if (player.dir === 'LEFT') {
-      x1 = player.pos.x - 1;
-      y1 = player.pos.y;
-      // x2 = player.pos.x - 1;
-      // y2 = player.pos.y;
-    } else if (player.dir === 'UP') {
-      x1 = player.pos.x;
-      y1 = player.pos.y - 1;
-      // x2 = player.pos.x;
-      // y2 = player.pos.y - 1;
-    } else if (player.dir === 'RIGHT') {
-      x1 = player.pos.x + 1;
-      y1 = player.pos.y;
-      // x2 = player.pos.x + 1;
-      // y2 = player.pos.y;
-    } else if (player.dir === 'DOWN') {
-      x1 = player.pos.x;
-      y1 = player.pos.y + 1;
-      // x2 = player.pos.x;
-      // y2 = player.pos.y + 1;
-    }
-    const playerSize = 4;
-    const wallSize = 4;
-    let playerRect = new Rect(x1, y1, playerSize, playerSize);
-    const border1 = new Rect(GRID_SIZE, 0, wallSize, GRID_SIZE); // right |
-    const border2 = new Rect(-4, 0, wallSize, GRID_SIZE); // left |
-    const border3 = new Rect(-4, -4, GRID_SIZE + 4, wallSize); // upper ---
-    const border4 = new Rect(-4, GRID_SIZE, GRID_SIZE + 4, wallSize); // lower ---
-    if (
-      (playerRect.intersects(border1) ||
-        playerRect.intersects(border2) ||
-        playerRect.intersects(border3) ||
-        playerRect.intersects(border4)) &&
-      checkForMovableWall === false
-    ) {
-      return true;
-    }
-    let wx1, wy1;
-    let wall, wallRect;
-    // Solid walls
-    for (let i = 0; i < gameState.walls.solid.length; i++) {
-      wall = gameState.walls.solid[i];
-      wx1 = wall.x;
-      wy1 = wall.y;
-      wallRect = new Rect(wx1, wy1, wallSize, wallSize);
-      if (wallRect.intersects(playerRect) && checkForMovableWall === false) {
-        return true;
-      }
-    }
-    // Movable walls
-    for (let i = 0; i < gameState.walls.movable.length; i++) {
-      wall = gameState.walls.movable[i];
-      wx1 = wall.x;
-      wy1 = wall.y;
-      wallRect = new Rect(wx1, wy1, wallSize, wallSize);
-      if (wallRect.intersects(playerRect)) {
-        if (checkForMovableWall) {
-          gameState.walls.movable.splice(i, 1);
-        }
-        return true;
-      }
-    }
-    return false;
-  }, []);
+        TEMP_DEFAULT_STATE.players[2].pos.x = GRID_SIZE - wallDim - 1;
+        TEMP_DEFAULT_STATE.players[2].pos.y = 1;
+        TEMP_DEFAULT_STATE.players[2].lives = 3;
+        TEMP_DEFAULT_STATE.players[2].isDead = false;
 
-  const livesUpdate = useCallback((playerID, player) => {
-    console.log('3A');
-    setGameState((prevState: any) => ({
-      ...prevState,
-      players: prevState.players.map((p: any) => {
-        if (p.id === playerID + 1) return player;
-        else return p;
-      }),
-      food: {},
-    }));
-    refState.current.players[playerID] = player;
-    refState.current.food = {};
-  }, []);
+        TEMP_DEFAULT_STATE.players[3].pos.x = 1;
+        TEMP_DEFAULT_STATE.players[3].pos.y = GRID_SIZE - wallDim - 1;
+        TEMP_DEFAULT_STATE.players[3].lives = 3;
+        TEMP_DEFAULT_STATE.players[3].isDead = false;
 
-  const playerUpdate = useCallback(
-    (player: any) => {
-      console.log('3');
-      setGameState((prevState: any) => ({
-        ...prevState,
-        players: prevState.players.map((p: any) => {
-          if (p.id === playerN + 1) return player;
-          else return p;
-        }),
-      }));
-      refState.current.players[playerN] = player;
-    },
-    [playerN],
-  );
-
-  const hasClientMoved = useCallback(
-    (gameState: any, prevGameState: any) => {
-      const { x: p1NowX, y: p1NowY } = gameState.players[0].pos;
-      const { x: p2NowX, y: p2NowY } = gameState.players[1].pos;
-      const { x: p1HistoryX, y: p1HistoryY } = prevGameState.players[0].pos;
-      const { x: p2HistoryX, y: p2HistoryY } = prevGameState.players[1].pos;
-      const clientMoved =
-        (playerN === 0 && (p1NowX !== p1HistoryX || p1NowY !== p1HistoryY)) ||
-        (playerN === 1 && (p2NowX !== p2HistoryX || p2NowY !== p2HistoryY));
-      return clientMoved;
-    },
-    [playerN],
-  );
-
-  /* ### [GameLoop]: Loops until game over. ### */
-  const gameLoop = useCallback(
-    (state: any, prevGameState: any) => {
-      if (!state) return false;
-      const playerOne = state.players[0];
-      const player1Rect = new Rect(playerOne.pos.x, playerOne.pos.y, 4, 4);
-      const playerTwo = state.players[1];
-      const player2Rect = new Rect(playerTwo.pos.x, playerTwo.pos.y, 4, 4);
-      // Move P1
-      if (!collision(playerOne, false, state)) {
-        playerOne.pos.x += playerOne.dxdy.x;
-        playerOne.pos.y += playerOne.dxdy.y;
-        if (playerN === 0 && hasClientMoved(state, prevGameState)) playerUpdate(playerOne);
-      }
-      // Move P2
-      if (!collision(playerTwo, false, state)) {
-        playerTwo.pos.x += playerTwo.dxdy.x;
-        playerTwo.pos.y += playerTwo.dxdy.y;
-        if (playerN === 1 && hasClientMoved(state, prevGameState)) playerUpdate(playerTwo);
-      }
-      updateBullets(state, playerOne, playerTwo, player1Rect, player2Rect);
-      /* [FOOD EATEN] */
-      if (state.food !== null) {
-        const food = new Rect(state.food.x, state.food.y, 2, 2);
-        if (food.intersects(player1Rect)) {
-          if (playerOne.lives < 3) playerOne.lives++;
-          livesUpdate(0, playerOne);
-          setTimeout(() => {
-            randomFood();
-          }, 10000);
-        } else if (food.intersects(player2Rect)) {
-          if (playerTwo.lives < 3) playerTwo.lives++;
-          livesUpdate(1, playerTwo);
-          setTimeout(() => {
-            randomFood();
-          }, 10000);
-        }
-      }
-      /* ## IMPORTANT for P1 ## */
-      if (playerOne.lives <= 0) return 2;
-      // ## !IDEA: Make it so that gold can be collected, and upgrade some feature in-game. ##
-      /* ## IMPORTANT for P2 ## */
-      if (playerTwo.lives <= 0) return 1;
-      return false;
-    },
-    [collision, hasClientMoved, playerN, playerUpdate, randomFood],
-  );
-
-  const paintGame = useCallback((context: any, state: any) => {
-    if (!state) return;
-    const food = state.food;
-    const gridsize = state.gridsize;
-    const gridRatio = CANVAS_WIDTH / gridsize; // 8.5
-    const playerSize = state.players[0].playersize; // 34
-    const wallSize = state.walls.wallsize; // 34
-    // CANVAS
-    context.fillStyle = BG_COLOR;
-    context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH); // (x, y, width, height)
-    // POWERUPS
-    context.fillStyle = POWER_UP_COLOR;
-    context.drawImage(
-      HEALTH_IMG,
-      food.x * gridRatio,
-      food.y * gridRatio,
-      gridRatio * 2,
-      gridRatio * 2,
+        TEMP_DEFAULT_STATE.walls = { wallsize: WALL_SIZE, solid: [], movable: [] };
+        initializePlayingField();
+        return TEMP_DEFAULT_STATE;
+      },
+      [initializePlayingField],
     );
-    // context.fillRect(food.x * gridRatio, food.y * gridRatio, gridRatio * 2, gridRatio * 2);
-    // BULLETS
-    context.fillStyle = '#ff6600';
-    for (let i = 0; i < state.players[0].bullets.length; i++) {
-      context.fillRect(
-        state.players[0].bullets[i].x * gridRatio,
-        state.players[0].bullets[i].y * gridRatio,
-        gridRatio,
-        gridRatio,
-      );
-    }
-    for (let i = 0; i < state.players[1].bullets.length; i++) {
-      context.fillRect(
-        state.players[1].bullets[i].x * gridRatio,
-        state.players[1].bullets[i].y * gridRatio,
-        gridRatio,
-        gridRatio,
-      );
-    }
-    // WALLS SOLID
-    context.fillStyle = WALL_COLOR;
-    if (state.walls.solid.length !== 0) {
-      state.walls.solid.forEach((wall: any) => {
-        context.drawImage(
-          SOLID_WALL_IMG,
-          wall.x * gridRatio,
-          wall.y * gridRatio,
-          wallSize,
-          wallSize,
-        );
-        // context.fillRect(wall.x * gridRatio, wall.y * gridRatio, wallSize, wallSize);
-      });
-    }
-    // WALLS MOVABLE
-    context.fillStyle = '#ccccff';
-    if (state.walls.movable.length !== 0) {
-      state.walls.movable.forEach((wall: any) => {
-        context.drawImage(
-          MOVABLE_WALL_IMG,
-          wall.x * gridRatio,
-          wall.y * gridRatio,
-          wallSize,
-          wallSize,
-        );
-        // context.fillRect(wall.x * gridRatio, wall.y * gridRatio, wallSize, wallSize);
-      });
-    }
 
-    // INDICATE PLAYERS WITH FLASHES
-    // Player 1
-    context.fillStyle = flashRef.current[0] ? FLASH_COLOR : PLAYER_1_COLOR;
-    if (flashRef.current[0]) flashRef.current[0]--;
-    context.fillRect(
-      state.players[0].pos.x * gridRatio,
-      state.players[0].pos.y * gridRatio,
-      playerSize,
-      playerSize,
-    );
-    // P1 Lives
-    if (state.players[0].lives > 0)
-      for (let i = 0; i < state.players[0].lives; i++) {
-        context.fillRect(
-          state.players[0].pos.x * gridRatio + i * 7,
-          state.players[0].pos.y * gridRatio - 6,
-          5,
-          5,
-        );
-      }
-    // P1 Inventory
-    context.fillStyle = '#66ffff';
-    for (let i = 3; i > state.players[0].inventorySpace; i--) {
-      context.fillRect(
-        state.players[0].pos.x * gridRatio + 36,
-        state.players[0].pos.y * gridRatio + 18 - 6 * i,
-        4,
-        4,
-      );
-    }
-    // P1 Reload
-    context.fillStyle = '#ffff00';
-    if (state.players[0].reload === false)
-      context.fillRect(
-        state.players[0].pos.x * gridRatio - 5,
-        state.players[0].pos.y * gridRatio + 1,
-        3,
-        12,
-      );
-    // P2
-    context.fillStyle = flashRef.current[1] ? FLASH_COLOR : PLAYER_2_COLOR;
-    if (flashRef.current[1]) flashRef.current[1]--;
-    context.fillRect(
-      state.players[1].pos.x * gridRatio,
-      state.players[1].pos.y * gridRatio,
-      playerSize,
-      playerSize,
-    );
-    // P2 Lives
-    if (state.players[1].lives > 0)
-      for (let i = 0; i < state.players[1].lives; i++) {
-        context.fillRect(
-          state.players[1].pos.x * gridRatio + i * 7,
-          state.players[1].pos.y * gridRatio - 6,
-          5,
-          5,
-        );
-      }
-    // P2 Inventory
-    context.fillStyle = '#66ffff';
-    for (let i = 3; i > state.players[1].inventorySpace; i--) {
-      context.fillRect(
-        state.players[1].pos.x * gridRatio + 36,
-        state.players[1].pos.y * gridRatio + 18 - 6 * i,
-        4,
-        4,
-      );
-    }
-    // P2 Reload
-    context.fillStyle = '#ffff00';
-    if (state.players[1].reload === false) {
-      context.fillRect(
-        state.players[1].pos.x * gridRatio - 5,
-        state.players[1].pos.y * gridRatio + 1,
-        3,
-        12,
-      );
-    }
-  }, []);
+    const randomFood = useCallback(() => {
+      if (playerN !== 0) return;
+      const food = {
+        x: Math.floor(GRID_SIZE / 4 + Math.random() * (GRID_SIZE / 2)),
+        y: Math.floor(GRID_SIZE / 4 + Math.random() * (GRID_SIZE / 2)),
+      };
+      setGameState((prevState: any) => ({ ...prevState, food: food }));
+      refState.current.food = food;
+    }, [playerN]);
 
-  const startGameInterval = useCallback(() => {
-    let prevGameState = gameState;
-    let intervalId = setInterval(() => intervalIdProcedure(refState.current), 1000 / FRAME_RATE);
-    const intervalIdProcedure = (gameState: any) => {
-      let winner = gameLoop(gameState, prevGameState);
-      if (!winner) {
-        if (hasClientMoved(gameState, prevGameState)) {
-          prevGameState = gameState;
-          emitGameState(gameState);
-        }
-      } else {
-        let p1Score = gameState.scores.P1;
-        let p2Score = gameState.scores.P2;
-        if (winner === 1 || winner === -1) p1Score++;
-        if (winner === 2 || winner === -1) p2Score++;
-        /* emitGameOver(roomName, winner, {
-              P1: gameState.scores.P1,
-              P2: gameState.scores.P2,
-            }); */
-        if (Math.max(p1Score, p2Score) < WINNING_SCORE) {
-          /* clearInterval(intervalId); */
-          const state = resetGameState([p1Score, p2Score]);
-          // randomFood();
-          setGameState(state);
-          refState.current = state;
-          /* setTimeout(
-                () =>
-                  (intervalId = setInterval(
-                    () => intervalIdProcedure(refState.current),
-                    1000 / FRAME_RATE,
-                  )),
-                DELAY_BETWEEN_ROUNDS,
-              ); */
-        } else {
-          const state = resetGameState([p1Score, p2Score]);
-          setGameState(state);
-        }
+    const collision = useCallback((player: any, checkForMovableWall: boolean, gameState: any) => {
+      if (!gameState) return false;
+      let x1 = 0;
+      // let x2 = 0;
+      let y1 = 0;
+      // let y2 = 0;
+      // Check one step ahead
+      if (player.dir === 'LEFT') {
+        x1 = player.pos.x - 1;
+        y1 = player.pos.y;
+        // x2 = player.pos.x - 1;
+        // y2 = player.pos.y;
+      } else if (player.dir === 'UP') {
+        x1 = player.pos.x;
+        y1 = player.pos.y - 1;
+        // x2 = player.pos.x;
+        // y2 = player.pos.y - 1;
+      } else if (player.dir === 'RIGHT') {
+        x1 = player.pos.x + 1;
+        y1 = player.pos.y;
+        // x2 = player.pos.x + 1;
+        // y2 = player.pos.y;
+      } else if (player.dir === 'DOWN') {
+        x1 = player.pos.x;
+        y1 = player.pos.y + 1;
+        // x2 = player.pos.x;
+        // y2 = player.pos.y + 1;
       }
-    };
-  }, [gameState, gameLoop, hasClientMoved, emitGameState, resetGameState]);
-
-  const wallDropAllowed = useCallback(
-    (player: any) => {
       const playerSize = 4;
       const wallSize = 4;
-      let space;
-      if (player.dir === 'UP') {
-        space = new Rect(player.pos.x, player.pos.y - wallSize, wallSize, wallSize);
-      } else if (player.dir === 'DOWN') {
-        space = new Rect(player.pos.x, player.pos.y + playerSize, wallSize, wallSize);
-      } else if (player.dir === 'LEFT') {
-        space = new Rect(player.pos.x - wallSize, player.pos.y, wallSize, wallSize);
-      } else if (player.dir === 'RIGHT') {
-        space = new Rect(player.pos.x + playerSize, player.pos.y, wallSize, wallSize);
+      let playerRect = new Rect(x1, y1, playerSize, playerSize);
+      const border1 = new Rect(GRID_SIZE, 0, wallSize, GRID_SIZE); // right |
+      const border2 = new Rect(-4, 0, wallSize, GRID_SIZE); // left |
+      const border3 = new Rect(-4, -4, GRID_SIZE + 4, wallSize); // upper ---
+      const border4 = new Rect(-4, GRID_SIZE, GRID_SIZE + 4, wallSize); // lower ---
+      if (
+        (playerRect.intersects(border1) ||
+          playerRect.intersects(border2) ||
+          playerRect.intersects(border3) ||
+          playerRect.intersects(border4)) &&
+        checkForMovableWall === false
+      ) {
+        return true;
       }
-      // Check if movable wall instersects with other movable walls.
-      /* for (let i = 0; i < gameState.walls.movable.length; i++) {
-            if (
-              space?.intersects(
-                new Rect(
-                  gameState.walls.movable[i].x,
-                  gameState.walls.movable[i].y,
-                  wallSize,
-                  wallSize,
-                ),
-              )
-            ) {
-              return false;
-            }
-          } */
-      gameState.walls.movable.push({ x: space?.x, y: space?.y });
-      return true;
-    },
-    [gameState],
-  );
+      let wx1, wy1;
+      let wall, wallRect;
+      // Solid walls
+      for (let i = 0; i < gameState.walls.solid.length; i++) {
+        wall = gameState.walls.solid[i];
+        wx1 = wall.x;
+        wy1 = wall.y;
+        wallRect = new Rect(wx1, wy1, wallSize, wallSize);
+        if (wallRect.intersects(playerRect) && checkForMovableWall === false) {
+          return true;
+        }
+      }
+      // Movable walls
+      for (let i = 0; i < gameState.walls.movable.length; i++) {
+        wall = gameState.walls.movable[i];
+        wx1 = wall.x;
+        wy1 = wall.y;
+        wallRect = new Rect(wx1, wy1, wallSize, wallSize);
+        if (wallRect.intersects(playerRect)) {
+          if (checkForMovableWall) {
+            gameState.walls.movable.splice(i, 1);
+          }
+          return true;
+        }
+      }
+      return false;
+    }, []);
 
-  const keyPressedUpdate = useCallback(
-    (keyCode: number) => {
-      const player = refState.current.players[playerN];
-      if (!player) return;
-      if (keyCode === 71) {
-        if (player.reload === false) {
-          if (player.dir === 'UP') {
-            player.bullets.push({ x: player.pos.x + 1, y: player.pos.y, dir: 'UP' });
-          } else if (player.dir === 'DOWN') {
-            player.bullets.push({ x: player.pos.x + 1, y: player.pos.y + 4, dir: 'DOWN' });
-          } else if (player.dir === 'LEFT') {
-            player.bullets.push({ x: player.pos.x, y: player.pos.y + 1, dir: 'LEFT' });
-          } else if (player.dir === 'RIGHT') {
-            player.bullets.push({ x: player.pos.x + 4, y: player.pos.y + 1, dir: 'RIGHT' });
+    const livesUpdate = useCallback((playerID, player) => {
+      setGameState((prevState: any) => ({
+        ...prevState,
+        players: prevState.players.map((p: any) => {
+          if (p.id === playerID + 1) return player;
+          else return p;
+        }),
+        food: {},
+      }));
+      refState.current.players[playerID] = player;
+      refState.current.food = {};
+    }, []);
+
+    const playerUpdate = useCallback(
+      (player: any) => {
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerN + 1) return player;
+            else return p;
+          }),
+        }));
+        refState.current.players[playerN] = player;
+      },
+      [playerN],
+    );
+
+    const updateBullets = useCallback(
+      (state: any, players: any, playerRects: any) => {
+        // Move
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const isPlayerInGame = i < playerCount;
+          if (!isPlayerInGame) break;
+          for (let j = 0; j < player.bullets.length; j++) {
+            const bullet = player.bullets[j];
+            if (bullet.dir === 'UP') {
+              bullet.y -= 3;
+            } else if (bullet.dir === 'DOWN') {
+              bullet.y += 3;
+            } else if (bullet.dir === 'LEFT') {
+              bullet.x -= 3;
+            } else if (bullet.dir === 'RIGHT') {
+              bullet.x += 3;
+            }
           }
-          player.reload = true;
-          setTimeout(() => {
-            player.reload = false;
-          }, 500);
         }
-      } else if (keyCode === 72) {
-        if (player.inventoryCooldown === false) {
-          player.inventoryCooldown = true;
-          // Pick up wall
-          if (player.inventorySpace - 1 >= 0 && collision(player, true, gameState)) {
-            player.inventorySpace--;
+        // Collision check
+        for (let id = 0; id < players.length; id++) {
+          const player = players[id];
+          const isPlayerInGame = id < playerCount;
+          if (!isPlayerInGame) break;
+          for (let i = 0; i < player.bullets.length; i++) {
+            const bulletRect = new Rect(player.bullets[i].x, player.bullets[i].y, 1, 1);
+            let isBulletHit = false;
+            playerRects.forEach((playerRect: any, playerRectId: number) => {
+              if (playerRect.intersects(bulletRect)) {
+                players[playerRectId].lives--;
+                flashRef.current[playerRectId] = 5;
+                player.bullets.splice(i, 1);
+                isBulletHit = true;
+              }
+            });
+            if (isBulletHit) break;
+            for (let k = 0; k < state.walls.solid.length; k++) {
+              if (
+                bulletRect.intersects(
+                  new Rect(state.walls.solid[k].x, state.walls.solid[k].y, 4, 4),
+                )
+              ) {
+                player.bullets.splice(i, 1);
+                break;
+              }
+            }
+            for (let k = 0; k < state.walls.movable.length; k++) {
+              if (
+                bulletRect.intersects(
+                  new Rect(state.walls.movable[k].x, state.walls.movable[k].y, 4, 4),
+                )
+              ) {
+                player.bullets.splice(i, 1);
+                break;
+              }
+            }
           }
-          // Drop wall
-          else if (player.inventorySpace !== 3 && wallDropAllowed(player)) {
-            player.inventorySpace++;
-          }
-          setTimeout(() => {
-            player.inventoryCooldown = false;
-          }, 500);
         }
-      } else {
-        if (!player.directionPreference.includes(keyCode)) {
-          player.directionPreference.push(keyCode);
+      },
+      [playerCount],
+    );
+
+    const hasClientMoved = useCallback(
+      (gameState: any, prevGameState: any) => {
+        const { x: p1NowX, y: p1NowY } = gameState.players[0].pos;
+        const { x: p2NowX, y: p2NowY } = gameState.players[1].pos;
+        const { x: p3NowX, y: p3NowY } = gameState.players[2].pos;
+        const { x: p4NowX, y: p4NowY } = gameState.players[3].pos;
+        const { x: p1HistoryX, y: p1HistoryY } = prevGameState.players[0].pos;
+        const { x: p2HistoryX, y: p2HistoryY } = prevGameState.players[1].pos;
+        const { x: p3HistoryX, y: p3HistoryY } = prevGameState.players[2].pos;
+        const { x: p4HistoryX, y: p4HistoryY } = prevGameState.players[3].pos;
+        const clientMoved =
+          (playerN === 0 && (p1NowX !== p1HistoryX || p1NowY !== p1HistoryY)) ||
+          (playerN === 1 && (p2NowX !== p2HistoryX || p2NowY !== p2HistoryY)) ||
+          (playerN === 2 && (p3NowX !== p3HistoryX || p3NowY !== p3HistoryY)) ||
+          (playerN === 3 && (p4NowX !== p4HistoryX || p4NowY !== p4HistoryY));
+        return clientMoved;
+      },
+      [playerN],
+    );
+
+    /* ### [GameLoop]: Loops until game over. ### */
+    const gameLoop = useCallback(
+      (state: any, prevGameState: any) => {
+        if (!state) return;
+        const playerOne = state.players[0];
+        const playerTwo = state.players[1];
+        const playerThree = state.players[2];
+        const playerFour = state.players[3];
+        const players = [playerOne, playerTwo, playerThree, playerFour];
+        const playerRects = [
+          new Rect(playerOne.pos.x, playerOne.pos.y, 4, 4),
+          new Rect(playerTwo.pos.x, playerTwo.pos.y, 4, 4),
+          new Rect(playerThree.pos.x, playerThree.pos.y, 4, 4),
+          new Rect(playerFour.pos.x, playerFour.pos.y, 4, 4),
+        ];
+        // [Players Movement]
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const isPlayerInGame = i < playerCount;
+          if (!isPlayerInGame) break;
+          if (!collision(player, false, state)) {
+            player.pos.x += player.dxdy.x;
+            player.pos.y += player.dxdy.y;
+            if (playerN === i && hasClientMoved(state, prevGameState)) playerUpdate(player);
+          }
+        }
+        updateBullets(state, players, playerRects);
+        /* [Food eaten] */
+        if (state.food !== null) {
+          const food = new Rect(state.food.x, state.food.y, 2, 2);
+          for (let i = 0; i < players.length; i++) {
+            const player = players[i];
+            const playerRect = playerRects[i];
+            const isPlayerInGame = i < playerCount;
+            if (!isPlayerInGame) break;
+            if (food.intersects(playerRect)) {
+              if (player.lives < 3) player.lives++;
+              livesUpdate(i, player);
+              setTimeout(() => {
+                randomFood();
+              }, 10000);
+            }
+          }
+        }
+        // [Winner]
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const isPlayerInGame = i < playerCount;
+          if (!isPlayerInGame) break;
+          if (player.lives <= 0) player.isDead = true;
+        }
+        return;
+        // ## !IDEA: Make it so that gold can be collected, and upgrade some feature in-game. ##
+      },
+      [
+        collision,
+        hasClientMoved,
+        livesUpdate,
+        playerCount,
+        playerN,
+        playerUpdate,
+        randomFood,
+        updateBullets,
+      ],
+    );
+
+    const paintGame = useCallback(
+      (context: any, state: any) => {
+        if (!state) return;
+        const food = state.food;
+        const gridsize = state.gridsize;
+        const gridRatio = CANVAS_WIDTH / gridsize; // 8.5
+        const playerSize = state.players[0].playersize; // 34
+        const wallSize = state.walls.wallsize; // 34
+        const players = [state.players[0], state.players[1], state.players[2], state.players[3]];
+        // CANVAS
+        context.fillStyle = BG_COLOR;
+        context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH); // (x, y, width, height)
+        // POWERUPS
+        context.drawImage(
+          HEALTH_IMG,
+          food.x * gridRatio,
+          food.y * gridRatio,
+          gridRatio * 2,
+          gridRatio * 2,
+        );
+        // BULLETS
+        context.fillStyle = '#ff6600';
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          for (let i = 0; i < player.bullets.length; i++) {
+            context.fillRect(
+              player.bullets[i].x * gridRatio,
+              player.bullets[i].y * gridRatio,
+              gridRatio,
+              gridRatio,
+            );
+          }
+        }
+        // WALLS SOLID
+        if (state.walls.solid.length !== 0) {
+          for (let i = 0; i < state.walls.solid.length; i++) {
+            const wall = state.walls.solid[i];
+            context.drawImage(
+              SOLID_WALL_IMG,
+              wall.x * gridRatio,
+              wall.y * gridRatio,
+              wallSize,
+              wallSize,
+            );
+          }
+        }
+        // WALLS MOVABLE
+        if (state.walls.movable.length !== 0) {
+          for (let i = 0; i < state.walls.movable.length; i++) {
+            const wall = state.walls.movable[i];
+            context.drawImage(
+              MOVABLE_WALL_IMG,
+              wall.x * gridRatio,
+              wall.y * gridRatio,
+              wallSize,
+              wallSize,
+            );
+          }
+        }
+        const PLAYER_COLORS = [PLAYER_1_COLOR, PLAYER_2_COLOR, PLAYER_3_COLOR, PLAYER_4_COLOR];
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          const isPlayerInGame = i < playerCount;
+          if (player.isDead) continue;
+          if (!isPlayerInGame) break;
+          context.fillStyle = flashRef.current[i] ? FLASH_COLOR : PLAYER_COLORS[i];
+          if (flashRef.current[i]) flashRef.current[i]--;
+          context.fillRect(
+            player.pos.x * gridRatio,
+            player.pos.y * gridRatio,
+            playerSize,
+            playerSize,
+          );
+          // P Lives
+          if (player.lives > 0)
+            for (let i = 0; i < player.lives; i++) {
+              context.fillRect(
+                player.pos.x * gridRatio + i * 7,
+                player.pos.y * gridRatio - 6,
+                5,
+                5,
+              );
+            }
+          // P Inventory
+          context.fillStyle = '#66ffff';
+          for (let i = 3; i > player.inventorySpace; i--) {
+            context.fillRect(
+              player.pos.x * gridRatio + 36,
+              player.pos.y * gridRatio + 18 - 6 * i,
+              4,
+              4,
+            );
+          }
+          // P Reload
+          context.fillStyle = '#ffff00';
+          if (player.reload === false)
+            context.fillRect(player.pos.x * gridRatio - 5, player.pos.y * gridRatio + 1, 3, 12);
+        }
+      },
+      [playerCount],
+    );
+
+    const gameOver = useCallback(() => {
+      if (!gameState.players[0].isDead) return 1;
+      if (!gameState.players[1].isDead) return 2;
+      if (!gameState.players[2].isDead) return 3;
+      if (!gameState.players[3].isDead) return 4;
+    }, [gameState.players]);
+
+    const startGameInterval = useCallback(() => {
+      let prevGameState = gameState;
+      setInterval(() => intervalIdProcedure(refState.current), 1000 / FRAME_RATE);
+      const intervalIdProcedure = (gameState: any) => {
+        gameLoop(gameState, prevGameState);
+        let winner;
+        const isP1Dead = gameState.players[0].isDead;
+        const isP2Dead = gameState.players[1].isDead;
+        const isP3Dead = gameState.players[2].isDead;
+        const isP4Dead = gameState.players[3].isDead;
+        if (playerCount === 2 && (isP1Dead || isP2Dead)) winner = gameOver();
+        else if (playerCount === 3) {
+          if ((isP1Dead && isP2Dead) || (isP1Dead && isP3Dead) || (isP2Dead && isP3Dead))
+            winner = gameOver();
+        } else if (playerCount === 4) {
+          const p1Counter = isP1Dead ? 0 : 1;
+          const p2Counter = isP2Dead ? 0 : 1;
+          const p3Counter = isP3Dead ? 0 : 1;
+          const p4Counter = isP4Dead ? 0 : 1;
+          if (p1Counter + p2Counter + p3Counter + p4Counter <= 1) winner = gameOver();
+        }
+        if (!winner) {
+          if (!hasClientMoved(gameState, prevGameState)) return;
+          prevGameState = gameState;
+          emitGameState(gameState);
+        } else {
+          let p1Score = gameState.scores.P1;
+          let p2Score = gameState.scores.P2;
+          let p3Score = gameState.scores.P3;
+          let p4Score = gameState.scores.P4;
+          if (winner === 1 || winner === -1) p1Score++;
+          if (winner === 2 || winner === -1) p2Score++;
+          if (winner === 3 || winner === -1) p3Score++;
+          if (winner === 4 || winner === -1) p4Score++;
+          const state = resetGameState([p1Score, p2Score, p3Score, p4Score]);
+          setGameState(state);
+          refState.current = state;
+        }
+      };
+    }, [
+      gameState,
+      gameLoop,
+      playerCount,
+      gameOver,
+      hasClientMoved,
+      emitGameState,
+      resetGameState,
+    ]);
+
+    const wallDropAllowed = useCallback(
+      (player: any) => {
+        const playerSize = 4;
+        const wallSize = 4;
+        let space;
+        if (player.dir === 'UP') {
+          space = new Rect(player.pos.x, player.pos.y - wallSize, wallSize, wallSize);
+        } else if (player.dir === 'DOWN') {
+          space = new Rect(player.pos.x, player.pos.y + playerSize, wallSize, wallSize);
+        } else if (player.dir === 'LEFT') {
+          space = new Rect(player.pos.x - wallSize, player.pos.y, wallSize, wallSize);
+        } else if (player.dir === 'RIGHT') {
+          space = new Rect(player.pos.x + playerSize, player.pos.y, wallSize, wallSize);
+        }
+        gameState.walls.movable.push({ x: space?.x, y: space?.y });
+        return true;
+      },
+      [gameState],
+    );
+
+    const keyPressedUpdate = useCallback(
+      (keyCode: number) => {
+        const player = refState.current.players[playerN];
+        if (!player) return;
+        if (player.isDead) return;
+        if (keyCode === 71) {
+          if (player.reload === false) {
+            if (player.dir === 'UP') {
+              player.bullets.push({ x: player.pos.x + 1, y: player.pos.y, dir: 'UP' });
+            } else if (player.dir === 'DOWN') {
+              player.bullets.push({ x: player.pos.x + 1, y: player.pos.y + 4, dir: 'DOWN' });
+            } else if (player.dir === 'LEFT') {
+              player.bullets.push({ x: player.pos.x, y: player.pos.y + 1, dir: 'LEFT' });
+            } else if (player.dir === 'RIGHT') {
+              player.bullets.push({ x: player.pos.x + 4, y: player.pos.y + 1, dir: 'RIGHT' });
+            }
+            player.reload = true;
+            setTimeout(() => {
+              player.reload = false;
+            }, 500);
+          }
+        } else if (keyCode === 72) {
+          if (player.inventoryCooldown === false) {
+            // Pick up wall
+            if (player.inventorySpace - 1 >= 0 && collision(player, true, gameState)) {
+              player.inventoryCooldown = true;
+              player.inventorySpace--;
+            }
+            // Drop wall
+            else if (player.inventorySpace !== 3 && wallDropAllowed(player)) {
+              player.inventorySpace++;
+            }
+            setTimeout(() => {
+              player.inventoryCooldown = false;
+            }, 500);
+          }
+        } else {
+          if (!player.directionPreference.includes(keyCode)) {
+            player.directionPreference.push(keyCode);
+          }
+          const dxdy = calculateDirection(player);
+          player.dxdy.x = dxdy[0];
+          player.dxdy.y = dxdy[1];
+        }
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerN + 1) {
+              return player;
+            } else return p;
+          }),
+        }));
+        refState.current.players[playerN] = player;
+        emitGameState(refState.current);
+      },
+      [collision, emitGameState, gameState, playerN, wallDropAllowed],
+    );
+
+    const keyReleasedUpdate = useCallback(
+      (keyCode: any) => {
+        const player = refState.current.players[playerN];
+        if (!player) return;
+        if (player.isDead) return;
+        if (player.directionPreference.includes(keyCode)) {
+          const newDirectionPreference = [];
+          const searchValue = keyCode;
+          for (let i = 0; i < player.directionPreference.length; i++) {
+            if (player.directionPreference[i] !== searchValue) {
+              newDirectionPreference.push(player.directionPreference[i]);
+            }
+          }
+          player.directionPreference = newDirectionPreference;
         }
         const dxdy = calculateDirection(player);
         player.dxdy.x = dxdy[0];
         player.dxdy.y = dxdy[1];
-      }
-      console.log('7');
-      setGameState((prevState: any) => ({
-        ...prevState,
-        players: prevState.players.map((p: any) => {
-          if (p.id === playerN + 1) {
-            return player;
-          } else return p;
-        }),
-      }));
-      refState.current.players[playerN] = player;
-      emitGameState(refState.current);
-    },
-    [collision, emitGameState, gameState, playerN, wallDropAllowed],
-  );
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerN + 1) {
+              return player;
+            } else return p;
+          }),
+        }));
+        refState.current.players[playerN] = player;
+        emitGameState(refState.current);
+      },
+      [emitGameState, playerN],
+    );
 
-  const keyReleasedUpdate = useCallback(
-    (keyCode: any) => {
-      const player = refState.current.players[playerN];
-      if (!player) return;
-      if (player.directionPreference.includes(keyCode)) {
-        const newDirectionPreference = [];
-        const searchValue = keyCode;
-        for (let i = 0; i < player.directionPreference.length; i++) {
-          if (player.directionPreference[i] !== searchValue) {
-            newDirectionPreference.push(player.directionPreference[i]);
+    useEffect(() => {
+      initializePlayingField();
+      randomFood();
+      startGameInterval();
+      window.addEventListener(
+        'keydown',
+        (e: KeyboardEvent) => {
+          keyPressedUpdate(e.keyCode);
+        },
+        false,
+      );
+      window.addEventListener(
+        'keyup',
+        (e: KeyboardEvent) => {
+          keyReleasedUpdate(e.keyCode);
+        },
+        false,
+      );
+      return () => {
+        window.removeEventListener('keydown', (e: KeyboardEvent) => keyPressedUpdate(e.keyCode));
+        window.removeEventListener('keyup', (e: KeyboardEvent) => keyReleasedUpdate(e.keyCode));
+      };
+    }, []);
+
+    const calculateDirection = (player: any) => {
+      let dx = 0;
+      let dy = 0;
+      if (player.directionPreference.length > 0) {
+        switch (player.directionPreference[player.directionPreference.length - 1]) {
+          case 37: {
+            dx = -1;
+            player.dir = 'LEFT';
+            return [dx, dy];
+          }
+          case 38: {
+            dy = -1;
+            player.dir = 'UP';
+            return [dx, dy];
+          }
+          case 39: {
+            dx = 1;
+            player.dir = 'RIGHT';
+            return [dx, dy];
+          }
+          case 40: {
+            dy = 1;
+            player.dir = 'DOWN';
+            return [dx, dy];
           }
         }
-        player.directionPreference = newDirectionPreference;
       }
-      const dxdy = calculateDirection(player);
-      player.dxdy.x = dxdy[0];
-      player.dxdy.y = dxdy[1];
-      console.log('8');
-      setGameState((prevState: any) => ({
-        ...prevState,
-        players: prevState.players.map((p: any) => {
-          if (p.id === playerN + 1) {
-            return player;
-          } else return p;
-        }),
-      }));
-      refState.current.players[playerN] = player;
-      emitGameState(refState.current);
-    },
-    [emitGameState, playerN],
-  );
-
-  useEffect(() => {
-    initializePlayingField();
-    randomFood();
-    startGameInterval();
-    console.log('5');
-    window.addEventListener(
-      'keydown',
-      (e: KeyboardEvent) => {
-        keyPressedUpdate(e.keyCode);
-      },
-      false,
-    );
-    window.addEventListener(
-      'keyup',
-      (e: KeyboardEvent) => {
-        keyReleasedUpdate(e.keyCode);
-      },
-      false,
-    );
-    return () => {
-      window.removeEventListener('keydown', (e: KeyboardEvent) => keyPressedUpdate(e.keyCode));
-      window.removeEventListener('keyup', (e: KeyboardEvent) => keyReleasedUpdate(e.keyCode));
+      return [0, 0];
     };
-  }, []);
 
-  const calculateDirection = (player: any) => {
-    let dx = 0;
-    let dy = 0;
-    if (player.directionPreference.length > 0) {
-      switch (player.directionPreference[player.directionPreference.length - 1]) {
-        case 37: {
-          dx = -1;
-          player.dir = 'LEFT';
-          return [dx, dy];
-        }
-        case 38: {
-          dy = -1;
-          player.dir = 'UP';
-          return [dx, dy];
-        }
-        case 39: {
-          dx = 1;
-          player.dir = 'RIGHT';
-          return [dx, dy];
-        }
-        case 40: {
-          dy = 1;
-          player.dir = 'DOWN';
-          return [dx, dy];
-        }
-      }
-    }
-    return [0, 0];
-  };
-
-  const updateBullets = (state: any, p1: any, p2: any, p1Rect: any, p2Rect: any) => {
-    // Move bullets
-    p1.bullets.forEach((bullet: any) => {
-      if (bullet.dir === 'UP') {
-        bullet.y -= 3;
-      } else if (bullet.dir === 'DOWN') {
-        bullet.y += 3;
-      } else if (bullet.dir === 'LEFT') {
-        bullet.x -= 3;
-      } else if (bullet.dir === 'RIGHT') {
-        bullet.x += 3;
-      }
-    });
-    p2.bullets.forEach((bullet: any) => {
-      if (bullet.dir === 'UP') {
-        bullet.y -= 3;
-      } else if (bullet.dir === 'DOWN') {
-        bullet.y += 3;
-      } else if (bullet.dir === 'LEFT') {
-        bullet.x -= 3;
-      } else if (bullet.dir === 'RIGHT') {
-        bullet.x += 3;
-      }
-    });
-    // Check for collision
-    for (let i = 0; i < p1.bullets.length; i++) {
-      const bulletRect = new Rect(p1.bullets[i].x, p1.bullets[i].y, 1, 1);
-      if (p2Rect.intersects(bulletRect)) {
-        p2.lives--;
-        flashRef.current[1] = 5;
-        p1.bullets.splice(i, 1);
-        break;
-      } else {
-        for (let k = 0; k < state.walls.solid.length; k++) {
-          if (
-            bulletRect.intersects(new Rect(state.walls.solid[k].x, state.walls.solid[k].y, 4, 4))
-          ) {
-            p1.bullets.splice(i, 1);
-            break;
-          }
-        }
-        for (let k = 0; k < state.walls.movable.length; k++) {
-          if (
-            bulletRect.intersects(
-              new Rect(state.walls.movable[k].x, state.walls.movable[k].y, 4, 4),
-            )
-          ) {
-            p1.bullets.splice(i, 1);
-            break;
-          }
-        }
-      }
-    }
-    for (let i = 0; i < p2.bullets.length; i++) {
-      const bulletRect = new Rect(p2.bullets[i].x, p2.bullets[i].y, 1, 1);
-      if (p1Rect.intersects(bulletRect)) {
-        p1.lives--;
-        flashRef.current[0] = 5;
-        p2.bullets.splice(i, 1);
-        break;
-      } else {
-        for (let k = 0; k < state.walls.solid.length; k++) {
-          if (
-            bulletRect.intersects(new Rect(state.walls.solid[k].x, state.walls.solid[k].y, 4, 4))
-          ) {
-            p2.bullets.splice(i, 1);
-            break;
-          }
-        }
-        for (let k = 0; k < state.walls.movable.length; k++) {
-          if (
-            bulletRect.intersects(
-              new Rect(state.walls.movable[k].x, state.walls.movable[k].y, 4, 4),
-            )
-          ) {
-            p2.bullets.splice(i, 1);
-            break;
-          }
-        }
-      }
-    }
-  };
-
-  return (
-    <>
-      <div
-        style={{
-          backgroundImage: 'linear-gradient(to bottom right, #050a28, #1a1a1a)',
-          width: '99.5vw',
-          height: '94.5vh',
-          userSelect: 'none',
-        }}
-      >
-        <div id="gameScreen" style={{ height: '90vh' }}>
-          <div
-            style={{
-              height: '80vh',
-              justifyContent: 'center',
-              alignItems: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <Canvas draw={paintGame} state={gameState} />
-
-            <span style={{ display: 'flex', flexDirection: 'row' }}>
-              <span style={{ color: 'red', fontSize: '40px' }}>P1: </span>
-              <span style={{ fontSize: '40px' }}>{gameState.scores.P1} Pts.</span>
-              <Spacer width={15} />
-              <span style={{ color: 'green', fontSize: '40px' }}>P2: </span>
-              <span style={{ fontSize: '40px' }}>{gameState.scores.P2} Pts.</span>
-            </span>
-
+    return (
+      <>
+        <div
+          style={{
+            backgroundImage: 'linear-gradient(to bottom right, #050a28, #1a1a1a)',
+            width: '99.5vw',
+            height: '94.5vh',
+            userSelect: 'none',
+          }}
+        >
+          <div id="gameScreen" style={{ height: '90vh' }}>
             <div
-              className="postGame"
               style={{
-                display: 'none',
-                width: '200px',
-                top: '40%',
-                backgroundColor: 'rgba(14, 29, 52, 0.8)',
-                position: 'absolute',
-                left: '50%',
-                marginLeft: '-100px',
-                paddingTop: '50px',
-                paddingBottom: '50px',
-                textAlign: 'center',
-                borderRadius: '5px',
-                color: 'white',
-                fontSize: '25px',
+                height: '80vh',
+                justifyContent: 'center',
+                alignItems: 'center',
+                display: 'flex',
+                flexDirection: 'column',
               }}
             >
-              <span className="countdown"></span>
+              <Canvas draw={paintGame} state={gameState} />
+
+              <span style={{ display: 'flex', flexDirection: 'row' }}>
+                <span style={{ color: 'red', fontSize: '40px' }}>P1: </span>
+                <span style={{ fontSize: '40px' }}>{gameState.scores.P1} Pts.</span>
+                <Spacer width={15} />
+                <span style={{ color: 'green', fontSize: '40px' }}>P2: </span>
+                <span style={{ fontSize: '40px' }}>{gameState.scores.P2} Pts.</span>
+                <Spacer width={15} />
+                {playerCount >= 3 && (
+                  <>
+                    <span style={{ color: PLAYER_3_COLOR, fontSize: '40px' }}>P3: </span>
+                    <span style={{ fontSize: '40px' }}>{gameState.scores.P3} Pts.</span>
+                  </>
+                )}
+                <Spacer width={15} />
+                {playerCount >= 4 && (
+                  <>
+                    <span style={{ color: PLAYER_4_COLOR, fontSize: '40px' }}>P4: </span>
+                    <span style={{ fontSize: '40px' }}>{gameState.scores.P4} Pts.</span>
+                  </>
+                )}
+              </span>
+
+              <div
+                className="postGame"
+                style={{
+                  display: 'none',
+                  width: '200px',
+                  top: '40%',
+                  backgroundColor: 'rgba(14, 29, 52, 0.8)',
+                  position: 'absolute',
+                  left: '50%',
+                  marginLeft: '-100px',
+                  paddingTop: '50px',
+                  paddingBottom: '50px',
+                  textAlign: 'center',
+                  borderRadius: '5px',
+                  color: 'white',
+                  fontSize: '25px',
+                }}
+              >
+                <span className="countdown"></span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </>
-  );
-});
+      </>
+    );
+  },
+);

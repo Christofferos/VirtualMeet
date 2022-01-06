@@ -37,7 +37,8 @@ A mesh network topology should work well up to 4 clients according to multiple s
 
 <img src="branding/meshNetworkTopologyV2.png" width="150" />
 
-- Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame
+- Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame (Might need
+  to add a server handling game state)
 - Add images with base64: https://onlinepngtools.com/convert-png-to-base64
 - [!] Check out simple-peer for 4 clients mode:
   https://github.com/feross/simple-peer#connecting-more-than-2-peers
