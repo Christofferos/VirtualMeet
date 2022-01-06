@@ -13,6 +13,9 @@ export const WALL_SIZE = 34;
 export const BG_COLOR = 'black'; // #0e1d34
 export const PLAYER_1_COLOR = 'red'; //c2c2c2
 export const PLAYER_2_COLOR = 'green';
+export const PLAYER_3_COLOR = '#FF9900';
+export const PLAYER_4_COLOR = '#6A00FF';
+
 export const FLASH_COLOR = 'white';
 export const POWER_UP_COLOR = '#6600ff';
 export const WALL_COLOR = 'white'; //"#151515";
