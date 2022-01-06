@@ -5,7 +5,6 @@ import { Spacer } from '../components/Spacer';
 import {
   BG_COLOR,
   CANVAS_WIDTH,
-  DELAY_BETWEEN_ROUNDS,
   FLASH_COLOR,
   FRAME_RATE,
   GRID_SIZE,
