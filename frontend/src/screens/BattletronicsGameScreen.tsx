@@ -304,6 +304,13 @@ export const BattletronicsGameScreen = () => {
     }));
     setGameInfo((prevState: IGameInfo) => ({ ...prevState, nPlayers, isNPlayerSelection: false }));
   };
+  const backToMenu = () => {
+    setGameInfo((prevState: IGameInfo) => ({
+      ...prevState,
+      nPlayers: 1,
+      isNPlayerSelection: true,
+    }));
+  };
 
   useEffect(() => {
     const nDefinedDataChannels = dataChannels.filter((dataChannel) => dataChannel !== null);
@@ -396,6 +403,9 @@ export const BattletronicsGameScreen = () => {
                 ))}
               </PlayersContainer>
               <Subtitle>[Controls]: Arrows to move, G to fire, H to pick up.</Subtitle>
+              <Button style={{ background: '#7F7F7F' }} onClick={backToMenu}>
+                Back
+              </Button>
             </>
           )}
         </>
