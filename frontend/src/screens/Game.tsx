@@ -964,6 +964,7 @@ export const Game = forwardRef(
                 width={90}
                 height={90}
                 onTouchStart={joystickShoot}
+                onTouchEnd={(e) => e.stopPropagation()}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
               <img
@@ -972,6 +973,7 @@ export const Game = forwardRef(
                 width={90}
                 height={90}
                 onTouchStart={joystickPickup}
+                onTouchEnd={(e) => e.stopPropagation()}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
             </div>
