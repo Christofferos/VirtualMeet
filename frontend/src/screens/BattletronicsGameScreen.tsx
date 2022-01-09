@@ -333,7 +333,7 @@ export const BattletronicsGameScreen = () => {
   }, [dataChannels, gameInfo.nPlayers, gameInfo.playersJoined]);
 
   return (
-    <Container>
+    <Container style={{ overflow: 'hidden' }}>
       {gameInfo.active ? (
         <Game
           emitGameState={emitGameState}

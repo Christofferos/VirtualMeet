@@ -894,6 +894,7 @@ export const Game = forwardRef(
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            overflow: 'hidden',
           }}
         >
           <Spacer height={5} />
@@ -954,7 +955,9 @@ export const Game = forwardRef(
                 justifyContent: 'space-evenly',
               }}
             >
-              <Joystick size={115} move={joystickMovedUpdate} stop={joystickReleasedUpdate} />
+              <div style={{ cursor: 'move', zIndex: 100 }}>
+                <Joystick size={115} move={joystickMovedUpdate} stop={joystickReleasedUpdate} />
+              </div>
               <img
                 src={SQUARE_IMG}
                 alt="squareBTN"
@@ -962,8 +965,13 @@ export const Game = forwardRef(
                 height={90}
                 onTouchStart={joystickShoot}
                 onClick={joystickShoot}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', zIndex: 100 }}
               />
+              {/* <button
+                onTouchStart={joystickPickup}
+                onClick={joystickPickup}
+                style={{ cursor: 'pointer', zIndex: 100 }}
+              > */}
               <img
                 src={CIRCLE_IMG}
                 alt="circleBTN"
@@ -971,8 +979,9 @@ export const Game = forwardRef(
                 height={90}
                 onTouchStart={joystickPickup}
                 onClick={joystickPickup}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', zIndex: 100 }}
               />
+              {/* </button> */}
             </div>
           </div>
         ) : null}
