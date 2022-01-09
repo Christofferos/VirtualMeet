@@ -2,7 +2,7 @@ import { getBoardSize } from './getBoardSize';
 
 export const CANVAS_SIZE = getBoardSize(); // 800
 
-export const FRAME_RATE = 35;
+export const FRAME_RATE = 77; // 35;
 export const GRID_SIZE = 100;
 export const WINNING_SCORE = 5;
 export const DELAY_BETWEEN_ROUNDS = 6000;
