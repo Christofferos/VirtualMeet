@@ -4,7 +4,17 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <!-- <meta name="viewport" content="width=device-width, initial-scale=1" /> -->
-    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <!-- mobile prevent zoom -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
+    />
+    <!-- css ios disable zoom  -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Web site created using create-react-app" />
 
@@ -36,6 +46,7 @@
       body {
         height: 100%;
         margin: 0 !important;
+        touch-action: pan-y, pan-x;
       }
     </style>
   </head>
