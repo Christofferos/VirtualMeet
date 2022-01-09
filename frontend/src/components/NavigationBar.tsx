@@ -20,7 +20,7 @@ const ListItem = styled.li`
 export const NavigationBar = () => {
   let navigate = useNavigate();
   const location = useLocation();
-  if (location.pathname === '/game' && IS_MOBILE_OR_TABLET) {
+  if (location.pathname === '/game') {
     document.body.style.overflow = 'hidden';
   }
   return location.pathname !== '/game' ? (
