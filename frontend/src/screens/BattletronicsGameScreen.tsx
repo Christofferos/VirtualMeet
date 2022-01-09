@@ -10,7 +10,15 @@ import { Input } from '../components/Input';
 import { ModalOverlay } from '../components/ModalOverlay';
 import { Game } from './Game';
 
-const Title = styled.h1``;
+const Title = styled.span`
+  text-align: center;
+  font-size: 36px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.1;
+`;
 const Subtitle = styled.h3`
   display: flex;
   justify-content: center;
@@ -109,7 +117,6 @@ export const BattletronicsGameScreen = () => {
       const parsedData = JSON.parse(event.data);
       if (!parsedData.gameState) return;
       if (!gameRef.current) return;
-      console.log(gameRef.current);
       gameRef.current.getGameStatePeer(parsedData.gameState, parsedData.playerID);
     };
     dataChannelOne.onopen = () => {

@@ -6,7 +6,7 @@ import { VideoChatScreen } from './screens/VideoChatScreen';
 
 export const App = () => {
   return (
-    <div className="App">
+    <div className="App" style={{ height: '100%', margin: '0' }}>
       <BrowserRouter>
         <NavigationBar />
         <Routes>

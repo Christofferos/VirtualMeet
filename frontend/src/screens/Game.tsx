@@ -1,20 +1,29 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Joystick } from 'react-joystick-component';
+import styled from 'styled-components';
 
 import Canvas from '../components/Canvas';
+import CanvasBackground from '../components/CanvasBackground';
 import { Spacer } from '../components/Spacer';
 import {
   BG_COLOR,
-  CANVAS_WIDTH,
+  CANVAS_SIZE,
   FLASH_COLOR,
   FRAME_RATE,
   GRID_SIZE,
+  IS_MOBILE_OR_TABLET,
   PLAYER_1_COLOR,
   PLAYER_2_COLOR,
   PLAYER_3_COLOR,
   PLAYER_4_COLOR,
-  WALL_SIZE,
 } from '../utils/constants';
 import { Rect } from '../utils/rectangleModule';
+import SQUARE_IMG from '../assets/square.png';
+import CIRCLE_IMG from '../assets/circle.png';
+
+const ScoreText = styled.span`
+  font-size: ${CANVAS_SIZE > 500 ? '40px' : '25px'};
+`;
 
 const SOLID_WALL_IMG = new Image();
 const MOVABLE_WALL_IMG = new Image();
@@ -26,6 +35,8 @@ MOVABLE_WALL_IMG.src =
 HEALTH_IMG.src =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAACaSURBVChTVY/BCsIwEERf2kZNhSJa8SAeRPD/f60tKkrTddLUgwtDdpjZ3YkDzKigrmG9gsmECYYBxyh11yZDxjgK0cz5zLeNFdoAZQlNA04LC+HY5r7yOPPBePbZ9KsYMz+dKajDv5gqGRK6TgZlotrA5TrHnYXbHbwGQ9AJhZmn0s33I79JXEps+eZhD/2gkMqdTFPEfV58AS86O1tc/01yAAAAAElFTkSuQmCC';
 
+const WALL_SIZE = 0.0425 * CANVAS_SIZE;
+const PLAYER_SIZE = WALL_SIZE;
 const wallDim = 4;
 const playerStartingPositions = [
   { x: 1, y: 1 },
@@ -51,10 +62,8 @@ const DEFAULT_GAME_STATE = {
     inventorySpace: 3,
     inventoryAction: false,
     inventoryCooldown: false,
-    playersize: WALL_SIZE,
   })),
   walls: {
-    wallsize: WALL_SIZE,
     solid: [],
     movable: [],
   },
@@ -149,7 +158,6 @@ export const Game = forwardRef(
       const generatedWalls = {
         solid: gameStateTemp.walls.solid,
         movable: gameStateTemp.walls.movable,
-        wallsize: WALL_SIZE,
       };
       setGameState((prevState: any) => ({
         ...prevState,
@@ -186,7 +194,7 @@ export const Game = forwardRef(
         TEMP_DEFAULT_STATE.players[3].lives = 3;
         TEMP_DEFAULT_STATE.players[3].isDead = false;
 
-        TEMP_DEFAULT_STATE.walls = { wallsize: WALL_SIZE, solid: [], movable: [] };
+        TEMP_DEFAULT_STATE.walls = { solid: [], movable: [] };
         initializePlayingField();
         return TEMP_DEFAULT_STATE;
       },
@@ -451,18 +459,39 @@ export const Game = forwardRef(
       ],
     );
 
+    const paintBackground = useCallback(
+      (context: CanvasRenderingContext2D) => {
+        const gridsize = gameState.gridsize;
+        const gridRatio = CANVAS_SIZE / gridsize;
+        // CANVAS
+        context.fillStyle = BG_COLOR;
+        context.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        // WALLS SOLID
+        if (gameState.walls.solid.length !== 0) {
+          for (let i = 0; i < gameState.walls.solid.length; i++) {
+            const wall = gameState.walls.solid[i];
+            context.drawImage(
+              SOLID_WALL_IMG,
+              wall.x * gridRatio,
+              wall.y * gridRatio,
+              WALL_SIZE,
+              WALL_SIZE,
+            );
+          }
+        }
+      },
+      [gameState.gridsize, gameState.walls.solid],
+    );
+
     const paintGame = useCallback(
-      (context: any, state: any) => {
+      (context: CanvasRenderingContext2D, state: any) => {
         if (!state) return;
         const food = state.food;
         const gridsize = state.gridsize;
-        const gridRatio = CANVAS_WIDTH / gridsize; // 8.5
-        const playerSize = state.players[0].playersize; // 34
-        const wallSize = state.walls.wallsize; // 34
+        const gridRatio = CANVAS_SIZE / gridsize;
         const players = [state.players[0], state.players[1], state.players[2], state.players[3]];
         // CANVAS
-        context.fillStyle = BG_COLOR;
-        context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_WIDTH); // (x, y, width, height)
+        context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
         // POWERUPS
         context.drawImage(
           HEALTH_IMG,
@@ -484,19 +513,6 @@ export const Game = forwardRef(
             );
           }
         }
-        // WALLS SOLID
-        if (state.walls.solid.length !== 0) {
-          for (let i = 0; i < state.walls.solid.length; i++) {
-            const wall = state.walls.solid[i];
-            context.drawImage(
-              SOLID_WALL_IMG,
-              wall.x * gridRatio,
-              wall.y * gridRatio,
-              wallSize,
-              wallSize,
-            );
-          }
-        }
         // WALLS MOVABLE
         if (state.walls.movable.length !== 0) {
           for (let i = 0; i < state.walls.movable.length; i++) {
@@ -505,26 +521,28 @@ export const Game = forwardRef(
               MOVABLE_WALL_IMG,
               wall.x * gridRatio,
               wall.y * gridRatio,
-              wallSize,
-              wallSize,
+              WALL_SIZE,
+              WALL_SIZE,
             );
           }
         }
+        // PLAYERS
         const PLAYER_COLORS = [PLAYER_1_COLOR, PLAYER_2_COLOR, PLAYER_3_COLOR, PLAYER_4_COLOR];
         for (let i = 0; i < players.length; i++) {
           const player = players[i];
           const isPlayerInGame = i < playerCount;
           if (player.isDead) continue;
           if (!isPlayerInGame) break;
+          // Flashes
           context.fillStyle = flashRef.current[i] ? FLASH_COLOR : PLAYER_COLORS[i];
           if (flashRef.current[i]) flashRef.current[i]--;
           context.fillRect(
             player.pos.x * gridRatio,
             player.pos.y * gridRatio,
-            playerSize,
-            playerSize,
+            PLAYER_SIZE,
+            PLAYER_SIZE,
           );
-          // P Lives
+          // Lives
           if (player.lives > 0)
             for (let i = 0; i < player.lives; i++) {
               context.fillRect(
@@ -534,17 +552,17 @@ export const Game = forwardRef(
                 5,
               );
             }
-          // P Inventory
+          // Inventory
           context.fillStyle = '#66ffff';
           for (let i = 3; i > player.inventorySpace; i--) {
             context.fillRect(
-              player.pos.x * gridRatio + 36,
+              player.pos.x * gridRatio + PLAYER_SIZE + 2,
               player.pos.y * gridRatio + 18 - 6 * i,
               4,
               4,
             );
           }
-          // P Reload
+          // Reload
           context.fillStyle = '#ffff00';
           if (player.reload === false)
             context.fillRect(player.pos.x * gridRatio - 5, player.pos.y * gridRatio + 1, 3, 12);
@@ -626,7 +644,97 @@ export const Game = forwardRef(
         gameState.walls.movable.push({ x: space?.x, y: space?.y });
         return true;
       },
-      [gameState],
+      [gameState.walls.movable],
+    );
+
+    const joystickMovedUpdate = useCallback(
+      (event: any) => {
+        const direction = event.direction;
+        const player = refState.current.players[playerN];
+        if (!player) return;
+        if (player.isDead) return;
+        player.directionPreference = [direction];
+        const dxdy = calculateDirection(player);
+        player.dxdy.x = dxdy[0];
+        player.dxdy.y = dxdy[1];
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerN + 1) {
+              return player;
+            } else return p;
+          }),
+        }));
+        refState.current.players[playerN] = player;
+        emitGameState(refState.current);
+      },
+      [emitGameState, playerN],
+    );
+
+    const joystickReleasedUpdate = useCallback(
+      (event: any) => {
+        const player = refState.current.players[playerN];
+        if (!player) return;
+        if (player.isDead) return;
+        if (event.type === 'stop') player.directionPreference = [];
+        const dxdy = calculateDirection(player);
+        player.dxdy.x = dxdy[0];
+        player.dxdy.y = dxdy[1];
+        setGameState((prevState: any) => ({
+          ...prevState,
+          players: prevState.players.map((p: any) => {
+            if (p.id === playerN + 1) {
+              return player;
+            } else return p;
+          }),
+        }));
+        refState.current.players[playerN] = player;
+        emitGameState(refState.current);
+      },
+      [emitGameState, playerN],
+    );
+
+    const joystickShoot = useCallback(
+      (event) => {
+        const player = refState.current.players[playerN];
+        if (player.reload === false) {
+          if (player.dir === 'UP') {
+            player.bullets.push({ x: player.pos.x + 1, y: player.pos.y, dir: 'UP' });
+          } else if (player.dir === 'DOWN') {
+            player.bullets.push({ x: player.pos.x + 1, y: player.pos.y + 4, dir: 'DOWN' });
+          } else if (player.dir === 'LEFT') {
+            player.bullets.push({ x: player.pos.x, y: player.pos.y + 1, dir: 'LEFT' });
+          } else if (player.dir === 'RIGHT') {
+            player.bullets.push({ x: player.pos.x + 4, y: player.pos.y + 1, dir: 'RIGHT' });
+          }
+          player.reload = true;
+          setTimeout(() => {
+            player.reload = false;
+          }, 500);
+        }
+      },
+      [playerN],
+    );
+
+    const joystickPickup = useCallback(
+      (event) => {
+        const player = refState.current.players[playerN];
+        if (player.inventoryCooldown === false) {
+          // Pick up wall
+          if (player.inventorySpace - 1 >= 0 && collision(player, true, gameState)) {
+            player.inventoryCooldown = true;
+            player.inventorySpace--;
+          }
+          // Drop wall
+          else if (player.inventorySpace !== 3 && wallDropAllowed(player)) {
+            player.inventorySpace++;
+          }
+          setTimeout(() => {
+            player.inventoryCooldown = false;
+          }, 500);
+        }
+      },
+      [collision, gameState, playerN, wallDropAllowed],
     );
 
     const keyPressedUpdate = useCallback(
@@ -748,22 +856,26 @@ export const Game = forwardRef(
       let dy = 0;
       if (player.directionPreference.length > 0) {
         switch (player.directionPreference[player.directionPreference.length - 1]) {
-          case 37: {
+          case 37:
+          case 'LEFT': {
             dx = -1;
             player.dir = 'LEFT';
             return [dx, dy];
           }
-          case 38: {
+          case 38:
+          case 'FORWARD': {
             dy = -1;
             player.dir = 'UP';
             return [dx, dy];
           }
-          case 39: {
+          case 39:
+          case 'RIGHT': {
             dx = 1;
             player.dir = 'RIGHT';
             return [dx, dy];
           }
-          case 40: {
+          case 40:
+          case 'BACKWARD': {
             dy = 1;
             player.dir = 'DOWN';
             return [dx, dy];
@@ -777,69 +889,93 @@ export const Game = forwardRef(
       <>
         <div
           style={{
-            backgroundImage: 'linear-gradient(to bottom right, #050a28, #1a1a1a)',
             width: '99.5vw',
-            height: '94.5vh',
             userSelect: 'none',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
           }}
         >
-          <div id="gameScreen" style={{ height: '90vh' }}>
+          <Spacer height={5} />
+          <div
+            id="gameScreen"
+            style={{ position: 'relative', height: CANVAS_SIZE, width: CANVAS_SIZE }}
+          >
             <div
               style={{
-                height: '80vh',
-                justifyContent: 'center',
-                alignItems: 'center',
                 display: 'flex',
                 flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '80vh',
               }}
             >
-              <Canvas draw={paintGame} state={gameState} />
-
-              <span style={{ display: 'flex', flexDirection: 'row' }}>
-                <span style={{ color: 'red', fontSize: '40px' }}>P1: </span>
-                <span style={{ fontSize: '40px' }}>{gameState.scores.P1} Pts.</span>
-                <Spacer width={15} />
-                <span style={{ color: 'green', fontSize: '40px' }}>P2: </span>
-                <span style={{ fontSize: '40px' }}>{gameState.scores.P2} Pts.</span>
-                <Spacer width={15} />
-                {playerCount >= 3 && (
-                  <>
-                    <span style={{ color: PLAYER_3_COLOR, fontSize: '40px' }}>P3: </span>
-                    <span style={{ fontSize: '40px' }}>{gameState.scores.P3} Pts.</span>
-                  </>
-                )}
-                <Spacer width={15} />
-                {playerCount >= 4 && (
-                  <>
-                    <span style={{ color: PLAYER_4_COLOR, fontSize: '40px' }}>P4: </span>
-                    <span style={{ fontSize: '40px' }}>{gameState.scores.P4} Pts.</span>
-                  </>
-                )}
-              </span>
-
-              <div
-                className="postGame"
-                style={{
-                  display: 'none',
-                  width: '200px',
-                  top: '40%',
-                  backgroundColor: 'rgba(14, 29, 52, 0.8)',
-                  position: 'absolute',
-                  left: '50%',
-                  marginLeft: '-100px',
-                  paddingTop: '50px',
-                  paddingBottom: '50px',
-                  textAlign: 'center',
-                  borderRadius: '5px',
-                  color: 'white',
-                  fontSize: '25px',
-                }}
-              >
-                <span className="countdown"></span>
-              </div>
+              <CanvasBackground draw={paintBackground} size={CANVAS_SIZE} />
+              <Canvas draw={paintGame} state={gameState} size={CANVAS_SIZE} />
             </div>
           </div>
+
+          <span style={{ display: 'flex', flexDirection: 'row' }}>
+            <ScoreText style={{ color: 'red' }}>P1: </ScoreText>
+            <ScoreText>{gameState.scores.P1} Pts.</ScoreText>
+            <Spacer width={15} />
+            <ScoreText style={{ color: 'green' }}>P2: </ScoreText>
+            <ScoreText>{gameState.scores.P2} Pts.</ScoreText>
+            <Spacer width={15} />
+            {playerCount >= 3 && (
+              <>
+                <ScoreText style={{ color: PLAYER_3_COLOR }}>P3: </ScoreText>
+                <ScoreText>{gameState.scores.P3} Pts.</ScoreText>
+              </>
+            )}
+            <Spacer width={15} />
+            {playerCount >= 4 && (
+              <>
+                <ScoreText style={{ color: PLAYER_4_COLOR }}>P4: </ScoreText>
+                <ScoreText>{gameState.scores.P4} Pts.</ScoreText>
+              </>
+            )}
+          </span>
         </div>
+        {IS_MOBILE_OR_TABLET ? (
+          <div
+            style={{
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: CANVAS_SIZE,
+                display: 'grid',
+                gridTemplateColumns: 'auto auto auto',
+                justifyContent: 'space-evenly',
+              }}
+            >
+              <Joystick size={115} move={joystickMovedUpdate} stop={joystickReleasedUpdate} />
+              <img
+                src={SQUARE_IMG}
+                alt="squareBTN"
+                width={90}
+                height={90}
+                onTouchStart={joystickShoot}
+                onClick={joystickShoot}
+                style={{ cursor: 'pointer' }}
+              />
+              <img
+                src={CIRCLE_IMG}
+                alt="circleBTN"
+                width={90}
+                height={90}
+                onTouchStart={joystickPickup}
+                onClick={joystickPickup}
+                style={{ cursor: 'pointer' }}
+              />
+            </div>
+          </div>
+        ) : null}
       </>
     );
   },

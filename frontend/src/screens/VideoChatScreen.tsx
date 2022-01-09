@@ -238,20 +238,19 @@ export const VideoChatScreen = () => {
 
       <VideoContainer className="videos">
         <Container>
+          <Subtitle>Friend</Subtitle>
+          {remoteStream?.active ? (
+            <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
+          ) : (
+            <img src={waitingForFriend} alt={'Waiting for friend..'} width={240} />
+          )}
+        </Container>
+        <Container>
           <Subtitle>You</Subtitle>
           {localStream ? (
             <WebcamVideo srcObject={localStream} id="webcamVideo" />
           ) : (
             <img src={waitingForWebcam} alt={'Waiting for webcam..'} width={240} />
-          )}
-        </Container>
-        <Container>
-          <Subtitle>Friend</Subtitle>
-
-          {remoteStream?.active ? (
-            <WebcamVideo srcObject={remoteStream} id="remoteVideo" />
-          ) : (
-            <img src={waitingForFriend} alt={'Waiting for friend..'} width={240} />
           )}
         </Container>
       </VideoContainer>

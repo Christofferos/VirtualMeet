@@ -1,8 +1,8 @@
 import { useRef, useEffect } from 'react';
 import { CANVAS_SIZE } from '../utils/constants';
 
-const Canvas = (props: any) => {
-  const { draw, state, ...rest } = props;
+const CanvasBackground = (props: any) => {
+  const { draw, ...rest } = props;
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -13,7 +13,7 @@ const Canvas = (props: any) => {
     let animationFrameId: number;
 
     const render = () => {
-      draw(context, state);
+      draw(context);
       animationFrameId = window.requestAnimationFrame(render);
     };
     render();
@@ -21,21 +21,21 @@ const Canvas = (props: any) => {
     return () => {
       window.cancelAnimationFrame(animationFrameId);
     };
-  }, [draw, state]);
+  }, [draw]);
 
   return (
     <canvas
       ref={canvasRef}
       style={{
-        zIndex: 2,
+        zIndex: 1,
         position: 'absolute',
         top: 0,
         left: 0,
-        borderRadius: '10px',
+        borderRadius: '5px',
       }}
       {...rest}
     />
   );
 };
 
-export default Canvas;
+export default CanvasBackground;
