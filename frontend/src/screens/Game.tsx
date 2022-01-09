@@ -963,25 +963,17 @@ export const Game = forwardRef(
                 alt="squareBTN"
                 width={90}
                 height={90}
-                onTouchStart={joystickShoot}
                 onClick={joystickShoot}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
-              {/* <button
-                onTouchStart={joystickPickup}
-                onClick={joystickPickup}
-                style={{ cursor: 'pointer', zIndex: 100 }}
-              > */}
               <img
                 src={CIRCLE_IMG}
                 alt="circleBTN"
                 width={90}
                 height={90}
-                onTouchStart={joystickPickup}
                 onClick={joystickPickup}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
-              {/* </button> */}
             </div>
           </div>
         ) : null}
