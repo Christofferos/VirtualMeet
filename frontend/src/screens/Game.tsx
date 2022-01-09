@@ -696,6 +696,7 @@ export const Game = forwardRef(
 
     const joystickShoot = useCallback(
       (event) => {
+        event.preventDefault();
         const player = refState.current.players[playerN];
         if (player.reload === false) {
           if (player.dir === 'UP') {
