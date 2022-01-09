@@ -1,9 +1,9 @@
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import logo from '../assets/virtualMeetFullLogo.png';
 import logoBattletronics from '../assets/battletronicsLogoRevamp2.png';
-import { Spacer } from './Spacer';
+import { IS_MOBILE_OR_TABLET } from '../utils/constants';
 
 const ListItem = styled.li`
   display: flex !important;
@@ -19,7 +19,11 @@ const ListItem = styled.li`
 
 export const NavigationBar = () => {
   let navigate = useNavigate();
-  return (
+  const location = useLocation();
+  if (location.pathname === '/game' && IS_MOBILE_OR_TABLET) {
+    document.body.style.overflow = 'hidden';
+  }
+  return location.pathname !== '/game' ? (
     <nav
       className="navbar navbar-default navbar-inverse navbar-static-top"
       role="navigation"
@@ -36,5 +40,5 @@ export const NavigationBar = () => {
         </ul>
       </div>
     </nav>
-  );
+  ) : null;
 };
