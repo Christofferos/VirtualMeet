@@ -696,7 +696,6 @@ export const Game = forwardRef(
 
     const joystickShoot = useCallback(
       (event) => {
-        event.preventDefault();
         const player = refState.current.players[playerN];
         if (player.reload === false) {
           if (player.dir === 'UP') {
@@ -964,7 +963,7 @@ export const Game = forwardRef(
                 alt="squareBTN"
                 width={90}
                 height={90}
-                onClick={joystickShoot}
+                onTouchStart={joystickShoot}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
               <img
@@ -972,7 +971,7 @@ export const Game = forwardRef(
                 alt="circleBTN"
                 width={90}
                 height={90}
-                onClick={joystickPickup}
+                onTouchStart={joystickPickup}
                 style={{ cursor: 'pointer', zIndex: 100 }}
               />
             </div>
