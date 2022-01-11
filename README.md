@@ -31,7 +31,7 @@ Try it out live (use two devices): https://virtualmeetrtc.herokuapp.com/
 - Express
 - Signaling Server - Firebase
 
-## FEATURES TO ADD:
+## FEATURES:
 
 A mesh network topology should work well up to 4 clients according to multiple sources.
 
