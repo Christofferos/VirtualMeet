@@ -21,6 +21,8 @@ import { Rect } from '../utils/rectangleModule';
 import SQUARE_IMG from '../assets/square.png';
 import CIRCLE_IMG from '../assets/circle.png';
 
+const _ = require('lodash');
+
 const ScoreText = styled.span`
   font-size: ${CANVAS_SIZE > 500 ? '40px' : '25px'};
 `;
@@ -485,6 +487,9 @@ export const Game = forwardRef(
 
     const paintGame = useCallback(
       (context: CanvasRenderingContext2D, state: any) => {
+        // ACTIVATE
+        // scangamepads();
+        // _.throttle(scangamepads, 500);
         if (!state) return;
         const food = state.food;
         const gridsize = state.gridsize;
@@ -885,6 +890,50 @@ export const Game = forwardRef(
       return [0, 0];
     };
 
+    // ACTIVATE
+    /* const scangamepads = () => {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const gamepad = gamepads[0];
+      if (gamepad?.buttons[0].pressed) {
+        keyPressedUpdate(72);
+        console.log('X HIT!');
+      }
+      if (gamepad?.buttons[2].pressed) {
+        keyPressedUpdate(71);
+        console.log('SQUARE HIT!');
+      }
+      if (gamepad?.axes[0] === -1) {
+        keyPressedUpdate(37);
+        console.log('WALK LEFT!');
+      } else if (gamepad?.axes[0] === 0) keyReleasedUpdate(37);
+      if (gamepad?.axes[1] === -1) {
+        keyPressedUpdate(38);
+        console.log('WALK UP!');
+      } else if (gamepad?.axes[1] === 0) keyReleasedUpdate(38);
+      if (gamepad?.axes[0] === 1) {
+        keyPressedUpdate(39);
+        console.log('WALK RIGHT!');
+      } else if (gamepad?.axes[0] === 0) keyReleasedUpdate(39);
+      if (gamepad?.axes[1] === 1) {
+        keyPressedUpdate(40);
+        console.log('WALK DOWN!');
+      } else if (gamepad?.axes[1] === 0) keyReleasedUpdate(40);
+    }; */
+
+    // const rAF = window.requestAnimationFrame;
+    /* const updateStatus = () => {
+      scangamepads();
+      rAF(updateStatus);
+    }; */
+
+    // ACTIVATE
+    /* window.addEventListener('gamepadconnected', (e) => {
+      // rAF(updateStatus);
+      // setTimeout(() => {
+      //  rAF(updateStatus);
+      // }, 1000 / FRAME_RATE);
+    }); */
+
     return (
       <>
         <div
@@ -956,7 +1005,7 @@ export const Game = forwardRef(
               }}
             >
               <div style={{ cursor: 'move', zIndex: 100 }}>
-                <Joystick size={115} move={joystickMovedUpdate} stop={joystickReleasedUpdate} />
+                <Joystick size={105} move={joystickMovedUpdate} stop={joystickReleasedUpdate} />
               </div>
               <img
                 src={SQUARE_IMG}
