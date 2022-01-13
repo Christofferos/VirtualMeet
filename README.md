@@ -37,18 +37,17 @@ A mesh network topology should work well up to 4 clients according to multiple s
 
 <img src="branding/meshNetworkTopologyV2.png" width="150" />
 
-- Mobile/tablet detection https://www.npmjs.com/package/react-device-detect or https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser ✅
+- Mobile/tablet detection https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser ✅
 - Joystick for mobile: https://www.npmjs.com/package/react-joystick-component ✅
-- Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame (Might need
-  to add a server handling game state)
-- Add images with base64: https://onlinepngtools.com/convert-png-to-base64 ✅
-- [!] Make game playable for 4 clients✅
-- Scale down video if device width is smaller than output video ✅
-- Allow for more than 2 people to join the call
-- Talk | Virtual Meet | Play ✅
-- Center formatting and other design ✅
-- Challenge someone that is online to play with
+- Add more features from Steam game: https://github.com/Christofferos/4PlayerLocalGame 
 - Add timer to environment events
+- Challenge someone that is online to play with
+- Add images with base64: https://onlinepngtools.com/convert-png-to-base64 ✅
+- Make game playable for 4 clients✅
+- Scale down video if device width is smaller than output video ✅
+- Allow for more than 2 people to join the call (WebRTC Media Server - group calls)
+- Talk | Virtual Meet | Play ✅
+- Improve design and interface ✅
 - Publish on Heroku ✅
 - Idea: What is the object? Recognition (https://www.youtube.com/watch?v=01sAkU_NvOY)
   (https://data-flair.training/blogs/data-science-project-ideas/)
